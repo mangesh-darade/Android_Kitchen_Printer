@@ -1,0 +1,308 @@
+import React, {useEffect, useState} from 'react';
+import {View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert} from 'react-native';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {
+  buildConfigFromDraft,
+  draftFromConfig,
+  loadConfig,
+  resetApplication,
+  resetPrinter,
+  saveConfig,
+  testPrinter,
+  type SetupDraft,
+} from '../native/posConnect';
+import {AppConfig, PRINTER_ROLES, type ConnectionType, type PrintEngine, type PrinterRole, type PrinterWidthClass} from '../core/config/models';
+import {PRINT_ENGINES} from '../printer/enginePolicy';
+import {Field, RowChoice, ToggleRow} from '../components/FormControls';
+import {colors, layout} from '../theme/styles';
+import {RootStackParamList} from '../App';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+
+export function SettingsScreen({navigation}: Props) {
+  const [config, setConfig] = useState<AppConfig | null>(null);
+
+  useEffect(() => {
+    loadConfig().then(setConfig);
+  }, []);
+
+  async function persist(next: AppConfig) {
+    await saveConfig(next);
+    setConfig(next);
+  }
+
+  async function updateDraft(patch: Partial<SetupDraft>) {
+    if (!config) return;
+    await persist(buildConfigFromDraft({...draftFromConfig(config), ...patch}));
+  }
+
+  if (!config) {
+    return <View style={styles.container} />;
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.heading}>Settings</Text>
+      <Text style={styles.line}>Division: {config.division.name}</Text>
+      <Text style={styles.line}>URL: {config.division.url}</Text>
+      <Text style={styles.line}>
+        {config.printer.brand} · {config.printer.printEngine} · {config.printer.width}
+      </Text>
+      <Text style={styles.line}>
+        Star id: {config.printer.starIdentifier || config.printer.ip || config.printer.macAddress || '—'}
+      </Text>
+
+      <Text style={styles.section}>Print engine</Text>
+      <RowChoice
+        label="Engine"
+        options={PRINT_ENGINES.map(id => ({id, title: id.replace(/_/g, ' ')}))}
+        selected={config.printer.printEngine}
+        onSelect={v => updateDraft({printEngine: v as PrintEngine})}
+      />
+      <RowChoice
+        label="Paper width"
+        options={[
+          {id: '3inch', title: '3 inch'},
+          {id: '4inch', title: '4 inch'},
+        ]}
+        selected={config.printer.width}
+        onSelect={v => updateDraft({width: v as PrinterWidthClass})}
+      />
+      <RowChoice
+        label="Interface"
+        options={[
+          {id: 'LAN', title: 'LAN'},
+          {id: 'BLUETOOTH', title: 'Bluetooth'},
+          {id: 'BLE', title: 'BLE'},
+          {id: 'USB', title: 'USB'},
+        ]}
+        selected={config.printer.connection}
+        onSelect={v => updateDraft({connection: v as ConnectionType})}
+      />
+      <Field
+        label="Star identifier / IP"
+        value={config.printer.starIdentifier || config.printer.ip}
+        onChangeText={v => updateDraft({starIdentifier: v, printerIp: v})}
+        autoCapitalize="none"
+      />
+      <Field
+        label="ESC/POS port"
+        value={String(config.printer.port)}
+        onChangeText={v => updateDraft({printerPort: parseInt(v, 10) || 9100})}
+        keyboardType="numeric"
+      />
+      <Field
+        label="MAC / Bluetooth"
+        value={config.printer.macAddress}
+        onChangeText={v => updateDraft({macAddress: v})}
+        autoCapitalize="none"
+      />
+      {config.printer.printEngine === 'CLOUDPRNT' && (
+        <Field
+          label="CloudPRNT URL"
+          value={config.printer.cloudPrntUrl}
+          onChangeText={v => updateDraft({cloudPrntUrl: v})}
+          autoCapitalize="none"
+        />
+      )}
+      {config.printer.printEngine === 'PASSPRNT' && (
+        <>
+          <Field
+            label="PassPRNT port"
+            value={config.printer.passPrntPort}
+            onChangeText={v => updateDraft({passPrntPort: v})}
+            autoCapitalize="none"
+          />
+          <Field
+            label="PassPRNT settings"
+            value={config.printer.passPrntSettings}
+            onChangeText={v => updateDraft({passPrntSettings: v})}
+            autoCapitalize="none"
+          />
+        </>
+      )}
+
+      {config.printer.connection === 'USB' && (
+        <>
+          <Field
+            label="USB vendor ID"
+            value={String(config.printer.usbVendorId || '')}
+            onChangeText={v => updateDraft({usbVendorId: parseInt(v, 10) || 0})}
+            keyboardType="numeric"
+          />
+          <Field
+            label="USB product ID"
+            value={String(config.printer.usbProductId || '')}
+            onChangeText={v => updateDraft({usbProductId: parseInt(v, 10) || 0})}
+            keyboardType="numeric"
+          />
+          <Field
+            label="USB device name"
+            value={config.printer.deviceName}
+            onChangeText={v => updateDraft({printerDeviceName: v})}
+          />
+        </>
+      )}
+      <Field
+        label="Printer name"
+        value={config.printer.name}
+        onChangeText={v => updateDraft({printerName: v})}
+      />
+      <RowChoice
+        label="Printer role"
+        options={PRINTER_ROLES.map(id => ({id, title: id}))}
+        selected={config.printer.role}
+        onSelect={v => updateDraft({printerRole: v as PrinterRole})}
+      />
+      <ToggleRow
+        label="Printer enabled"
+        value={config.printer.enabled}
+        onToggle={v => updateDraft({printerEnabled: v})}
+      />
+      <ToggleRow
+        label="Auto reconnect"
+        value={config.printer.autoReconnect}
+        onToggle={v => updateDraft({autoReconnect: v})}
+      />
+      <Field
+        label="Retry count"
+        value={String(config.printer.retryCount)}
+        onChangeText={v => updateDraft({retryCount: Math.max(0, parseInt(v, 10) || 0)})}
+        keyboardType="numeric"
+      />
+
+      <Text style={styles.section}>Print behaviour</Text>
+      <ToggleRow
+        label="Show print dialog"
+        value={config.printer.showPrintDialog}
+        onToggle={v => updateDraft({showPrintDialog: v})}
+      />
+      <ToggleRow
+        label="Auto cut after print"
+        value={config.printer.autoCut}
+        onToggle={v => updateDraft({autoCut: v})}
+      />
+      <ToggleRow
+        label="Cash drawer"
+        value={config.printer.cashDrawer}
+        onToggle={v => updateDraft({cashDrawer: v})}
+      />
+      <View style={styles.row}>
+        <ChoiceBtn
+          title="Partial cut"
+          selected={config.printer.cutMode === 'partial'}
+          onPress={() => updateDraft({cutMode: 'partial'})}
+        />
+        <ChoiceBtn
+          title="Full cut"
+          selected={config.printer.cutMode === 'full'}
+          onPress={() => updateDraft({cutMode: 'full'})}
+        />
+      </View>
+
+      <TouchableOpacity
+        style={styles.primaryBtn}
+        onPress={async () => {
+          const res = await testPrinter(config);
+          Alert.alert('Test print', res.success ? 'Sent to printer' : res.message || 'Failed');
+        }}>
+        <Text style={styles.primaryBtnText}>Test printer</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('PrinterTest')}>
+        <Text style={styles.secondaryBtnText}>Star SDK tools (discover / status / config)</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Setup')}>
+        <Text style={styles.secondaryBtnText}>Re-run setup wizard</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.secondaryBtn}
+        onPress={async () => {
+          await resetPrinter();
+          Alert.alert('Printer reset', 'Printer settings cleared.');
+          loadConfig().then(setConfig);
+        }}>
+        <Text style={styles.secondaryBtnText}>Reset printer only</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.dangerBtn}
+        onPress={async () => {
+          await resetApplication();
+          navigation.replace('Welcome');
+        }}>
+        <Text style={styles.dangerBtnText}>Reset entire app</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.goBack()}>
+        <Text style={styles.linkBtnText}>Back to POS</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+function ChoiceBtn({
+  title,
+  selected,
+  onPress,
+}: {
+  title: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.choiceBtn, selected && styles.choiceBtnSelected]}
+      onPress={onPress}>
+      <Text style={[styles.choiceBtnText, selected && styles.choiceBtnTextSelected]}>{title}</Text>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {padding: layout.pad, backgroundColor: colors.card, flexGrow: 1},
+  heading: {fontSize: 24, fontWeight: '700', marginBottom: 12, color: colors.text},
+  section: {marginTop: 20, marginBottom: 8, fontSize: 16, fontWeight: '600', color: colors.text},
+  line: {fontSize: 15, color: colors.text, marginBottom: 6},
+  row: {flexDirection: 'row', gap: 8, marginVertical: 8},
+  choiceBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: layout.radius,
+    padding: 12,
+    alignItems: 'center',
+  },
+  choiceBtnSelected: {borderColor: colors.primary, backgroundColor: '#EFF6FF'},
+  choiceBtnText: {color: colors.text},
+  choiceBtnTextSelected: {color: colors.primary, fontWeight: '600'},
+  primaryBtn: {
+    marginTop: 20,
+    backgroundColor: colors.primary,
+    padding: 14,
+    borderRadius: layout.radius,
+    alignItems: 'center',
+  },
+  primaryBtnText: {color: '#FFF', fontWeight: '600'},
+  secondaryBtn: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+    borderRadius: layout.radius,
+    alignItems: 'center',
+  },
+  secondaryBtnText: {color: colors.text, fontWeight: '600'},
+  dangerBtn: {
+    marginTop: 10,
+    backgroundColor: '#FEF2F2',
+    padding: 14,
+    borderRadius: layout.radius,
+    alignItems: 'center',
+  },
+  dangerBtnText: {color: colors.danger, fontWeight: '600'},
+  linkBtn: {marginTop: 16, alignItems: 'center'},
+  linkBtnText: {color: colors.primary, fontWeight: '600'},
+});
