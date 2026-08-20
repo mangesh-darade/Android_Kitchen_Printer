@@ -13,6 +13,11 @@ import {
 } from '../native/posConnect';
 import {AppConfig, PRINTER_ROLES, type ConnectionType, type PrintEngine, type PrinterRole, type PrinterWidthClass} from '../core/config/models';
 import {PRINT_ENGINES} from '../printer/enginePolicy';
+import {
+  printerSdkSettingsFields,
+  resolveActiveSdkTechName,
+  VENDOR_SDK_CATALOG,
+} from '../printer/vendorSdkCatalog';
 import {Field, RowChoice, ToggleRow} from '../components/FormControls';
 import {colors, layout} from '../theme/styles';
 import {RootStackParamList} from '../App';
@@ -40,6 +45,12 @@ export function SettingsScreen({navigation}: Props) {
     return <View style={styles.container} />;
   }
 
+  const sdk = printerSdkSettingsFields(
+    config.printer.brand,
+    config.printer.printEngine,
+    config.printer.connection,
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.heading}>Settings</Text>
@@ -48,11 +59,28 @@ export function SettingsScreen({navigation}: Props) {
       <Text style={styles.line}>
         {config.printer.brand} · {config.printer.printEngine} · {config.printer.width}
       </Text>
+      <Text style={styles.sdkLine}>
+        SDK: {sdk.sdkTechName}
+      </Text>
+      <Text style={[styles.sdkMeta, sdk.sdkIntegrated ? styles.sdkIntegrated : styles.sdkFallback]}>
+        {sdk.sdkIntegrated ? 'Official SDK integrated' : 'ESC/POS fallback — SDK not bundled'}
+      </Text>
+      <Text style={styles.sdkMeta}>Print path: {sdk.sdkPrintPath}</Text>
+      {!sdk.sdkIntegrated && sdk.sdkDownloadUrl ? (
+        <Text style={styles.sdkMeta}>Download: {sdk.sdkDownloadUrl}</Text>
+      ) : null}
       <Text style={styles.line}>
         Star id: {config.printer.starIdentifier || config.printer.ip || config.printer.macAddress || '—'}
       </Text>
 
       <Text style={styles.section}>Print engine</Text>
+      <Text style={styles.sdkLine}>
+        Active SDK: {resolveActiveSdkTechName(
+          config.printer.brand,
+          config.printer.printEngine,
+          config.printer.connection,
+        )}
+      </Text>
       <RowChoice
         label="Engine"
         options={PRINT_ENGINES.map(id => ({id, title: id.replace(/_/g, ' ')}))}
@@ -80,9 +108,15 @@ export function SettingsScreen({navigation}: Props) {
         onSelect={v => updateDraft({connection: v as ConnectionType})}
       />
       <Field
-        label="Star identifier / IP"
-        value={config.printer.starIdentifier || config.printer.ip}
-        onChangeText={v => updateDraft({starIdentifier: v, printerIp: v})}
+        label="Printer IP (ESC/POS LAN)"
+        value={config.printer.ip}
+        onChangeText={v => updateDraft({printerIp: v})}
+        autoCapitalize="none"
+      />
+      <Field
+        label="Star identifier (MAC or IP)"
+        value={config.printer.starIdentifier}
+        onChangeText={v => updateDraft({starIdentifier: v})}
         autoCapitalize="none"
       />
       <Field
@@ -213,6 +247,14 @@ export function SettingsScreen({navigation}: Props) {
         <Text style={styles.secondaryBtnText}>Star SDK tools (discover / status / config)</Text>
       </TouchableOpacity>
 
+      <Text style={styles.section}>Vendor SDK catalog</Text>
+      {VENDOR_SDK_CATALOG.map(entry => (
+        <Text key={entry.brand} style={styles.catalogLine}>
+          {entry.brand}: {entry.sdkTechName} {entry.version}
+          {entry.supply === 'manual_required' ? ' (manual download)' : ''}
+        </Text>
+      ))}
+
       <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Setup')}>
         <Text style={styles.secondaryBtnText}>Re-run setup wizard</Text>
       </TouchableOpacity>
@@ -266,6 +308,11 @@ const styles = StyleSheet.create({
   heading: {fontSize: 24, fontWeight: '700', marginBottom: 12, color: colors.text},
   section: {marginTop: 20, marginBottom: 8, fontSize: 16, fontWeight: '600', color: colors.text},
   line: {fontSize: 15, color: colors.text, marginBottom: 6},
+  sdkLine: {fontSize: 14, color: colors.primary, marginBottom: 4, fontWeight: '600'},
+  sdkMeta: {fontSize: 13, marginBottom: 6},
+  sdkIntegrated: {color: '#166534'},
+  sdkFallback: {color: '#B45309'},
+  catalogLine: {fontSize: 12, color: colors.muted, marginBottom: 4},
   row: {flexDirection: 'row', gap: 8, marginVertical: 8},
   choiceBtn: {
     flex: 1,
