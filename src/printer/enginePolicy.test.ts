@@ -1,4 +1,4 @@
-import {defaultPrintEngine, usesExistingEscPosStack, connectionToStarInterface} from './enginePolicy';
+import {cutIncludedInPrint, defaultPrintEngine, usesExistingEscPosStack, connectionToStarInterface} from './enginePolicy';
 import {shouldSkipEscPosTransport} from './printRouter';
 
 describe('enginePolicy', () => {
@@ -25,5 +25,12 @@ describe('enginePolicy', () => {
   it('does not open ESC/POS TCP when using a Star engine', () => {
     expect(shouldSkipEscPosTransport('STAR_IO10')).toBe(true);
     expect(shouldSkipEscPosTransport('ESC_POS')).toBe(false);
+  });
+
+  it('reports when cut is already inside the print job', () => {
+    expect(cutIncludedInPrint('STAR_IO10', true)).toBe(true);
+    expect(cutIncludedInPrint('PASSPRNT', true)).toBe(true);
+    expect(cutIncludedInPrint('ESC_POS', true)).toBe(false);
+    expect(cutIncludedInPrint('STAR_IO10', false)).toBe(false);
   });
 });

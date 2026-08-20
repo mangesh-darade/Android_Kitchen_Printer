@@ -37,6 +37,14 @@ export function usesStarIo10Sdk(engine: PrintEngine): boolean {
   return engine === 'STAR_IO10';
 }
 
+/** When true, ElintOm should not call cutPaper() — cut is already in the print job. */
+export function cutIncludedInPrint(engine: PrintEngine, autoCut: boolean): boolean {
+  if (!autoCut) {
+    return false;
+  }
+  return engine === 'STAR_IO10' || engine === 'PASSPRNT';
+}
+
 export function connectionToStarInterface(connection: ConnectionType): StarInterface {
   switch (connection) {
     case 'BLUETOOTH':
