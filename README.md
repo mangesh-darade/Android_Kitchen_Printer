@@ -38,10 +38,17 @@ pos-connect-rn/
 ```bash
 cd pos-connect-rn
 npm install
-npm start
-# new terminal
+npm run android:studio
+# keep that terminal open (Metro), then Run ▶ in Android Studio (open android/ folder)
+```
+
+Or one command (Metro + install + launch):
+
+```bash
 npm run android
 ```
+
+**Red screen "Unable to load script"?** Metro is not running. Start `npm run android:studio` before pressing Run in Android Studio.
 
 ## Setup flow
 
