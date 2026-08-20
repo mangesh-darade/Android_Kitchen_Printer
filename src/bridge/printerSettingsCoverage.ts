@@ -1,7 +1,10 @@
+import {cutIncludedInPrint} from '../printer/enginePolicy';
 import {emptyConfig, type AppConfig, type PrinterConfig} from '../core/config/models';
+import {printerSdkSettingsFields} from '../printer/vendorSdkCatalog';
 import {PRINTER_OPERATOR_SETTING_KEYS, PRINTER_SETTINGS_BRIDGE_KEYS, SETUP_DRAFT_PRINTER_KEYS} from './posNativeContract';
 
 export function printerSettingsForBridge(printer: PrinterConfig) {
+  const sdk = printerSdkSettingsFields(printer.brand, printer.printEngine, printer.connection);
   return {
     showPrintDialog: printer.showPrintDialog,
     autoCut: printer.autoCut,
@@ -30,6 +33,8 @@ export function printerSettingsForBridge(printer: PrinterConfig) {
     usbProductId: printer.usbProductId,
     autoReconnect: printer.autoReconnect,
     retryCount: printer.retryCount,
+    cutIncludedInPrint: cutIncludedInPrint(printer.printEngine, printer.autoCut),
+    ...sdk,
   };
 }
 

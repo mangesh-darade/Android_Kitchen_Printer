@@ -23,6 +23,7 @@ export function parsePrintPayload(raw?: string): string {
 export function kitchenPrintViaAndroidBridge(
   bridge: {printText: (json: string) => string; cutPaper?: () => string},
   text: string,
+  options?: {cutIncludedInPrint?: boolean},
 ): boolean {
   const content = String(text || '').trim();
   if (!content) {
@@ -31,7 +32,7 @@ export function kitchenPrintViaAndroidBridge(
   try {
     const result = JSON.parse(bridge.printText(JSON.stringify({text: content})) || '{}');
     if (result.success === true) {
-      if (typeof bridge.cutPaper === 'function') {
+      if (!options?.cutIncludedInPrint && typeof bridge.cutPaper === 'function') {
         bridge.cutPaper();
       }
       return true;

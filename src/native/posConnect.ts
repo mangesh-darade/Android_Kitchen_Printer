@@ -42,6 +42,14 @@ type PosConnectNative = {
 
 const Native: PosConnectNative | undefined = NativeModules.PosConnect;
 
+export function printerDisabledResult(): PluginResult {
+  return {
+    success: false,
+    errorCode: 'PRINTER_OFFLINE',
+    message: 'Printer is disabled',
+  };
+}
+
 function parseResult<T>(raw: string): PluginResult<T> {
   try {
     return JSON.parse(raw) as PluginResult<T>;
@@ -112,6 +120,9 @@ export async function connectPrinter(printerJson?: string): Promise<PluginResult
 
 export async function testPrinter(config?: AppConfig): Promise<PluginResult> {
   const cfg = config || (await loadConfig());
+  if (!cfg.printer.enabled) {
+    return printerDisabledResult();
+  }
   if (!usesExistingEscPosStack(cfg.printer.printEngine)) {
     return routePrint({action: 'testPrint', printer: cfg.printer});
   }
@@ -182,13 +193,14 @@ export async function runPrinterAction(
   printer: AppConfig['printer'],
   extra: {text?: string; qr?: string; barcode?: string; imagePath?: string; imageBase64?: string} = {},
 ): Promise<PluginResult> {
+  if (!printer.enabled) {
+    return printerDisabledResult();
+  }
   if (usesExistingEscPosStack(printer.printEngine)) {
     if (action === 'testPrint') {
       return testPrinter({...emptyConfig(), printer});
     }
-    return Native
-      ? parseResult(await Native.testPrinter())
-      : {success: false, message: 'ESC/POS action needs native module'};
+    return {success: false, message: `ESC/POS ${action} is handled by the native printer manager`};
   }
   return routePrint({action, printer, ...extra});
 }
@@ -384,6 +396,10 @@ type StarPrintPayload = {
 async function handleStarPrintEvent(payload: StarPrintPayload) {
   try {
     const config = await loadConfig();
+    if (!config.printer.enabled) {
+      await notifyPrintResult(payload.jobId, false, 'Printer is disabled');
+      return;
+    }
     const action = payload.action || 'printText';
     const imageBase64 =
       payload.imageBase64 || payload.image || (action === 'printImage' ? payload.text : undefined);

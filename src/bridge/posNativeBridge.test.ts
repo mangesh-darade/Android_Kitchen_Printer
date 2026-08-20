@@ -95,12 +95,35 @@ describe('ElintOm kitchen printText + cutPaper', () => {
     expect(printText).not.toHaveBeenCalled();
   });
 
-  it('treats Star QUEUED response as success so kitchen continues', () => {
+  it('treats completed Star print as success (sync await, not QUEUED)', () => {
     const cutPaper = jest.fn();
     const printText = jest.fn(() =>
-      JSON.stringify({success: true, data: {status: 'QUEUED', jobId: 'abc'}}),
+      JSON.stringify({success: true, message: 'Printed via StarIO10'}),
     );
     expect(kitchenPrintViaAndroidBridge({printText, cutPaper}, 'KOT')).toBe(true);
+    expect(cutPaper).toHaveBeenCalled();
+  });
+
+  it('skips separate cutPaper when cutIncludedInPrint is true (Star/PassPRNT)', () => {
+    const cutPaper = jest.fn();
+    const printText = jest.fn(() => JSON.stringify({success: true}));
+    expect(
+      kitchenPrintViaAndroidBridge({printText, cutPaper}, 'KOT', {cutIncludedInPrint: true}),
+    ).toBe(true);
+    expect(cutPaper).not.toHaveBeenCalled();
+  });
+
+  it('does not cut when printer returns disabled', () => {
+    const cutPaper = jest.fn();
+    const printText = jest.fn(() =>
+      JSON.stringify({
+        success: false,
+        errorCode: 'PRINTER_OFFLINE',
+        message: 'Printer is disabled',
+      }),
+    );
+    expect(kitchenPrintViaAndroidBridge({printText, cutPaper}, 'KOT')).toBe(false);
+    expect(cutPaper).not.toHaveBeenCalled();
   });
 
   it('parses kitchen JSON and raw text the same way native does', () => {

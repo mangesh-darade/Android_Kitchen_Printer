@@ -52,6 +52,15 @@ export const PRINTER_SETTINGS_BRIDGE_KEYS = [
   'usbProductId',
   'autoReconnect',
   'retryCount',
+  'cutIncludedInPrint',
+  'sdkTechName',
+  'sdkOfficialName',
+  'sdkVersion',
+  'sdkSupply',
+  'sdkIntegrated',
+  'sdkDownloadUrl',
+  'sdkPrintPath',
+  'sdkUsesVendorApi',
 ] as const;
 
 /** Printer fields the operator must be able to set (Setup and/or Settings). */
