@@ -102,9 +102,27 @@ android {
             // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
+            shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+    splits {
+        abi {
+            enable true
+            reset()
+            include "armeabi-v7a", "arm64-v8a"
+            universalApk false
+        }
+    }
+    packaging {
+        jniLibs {
+            pickFirsts += ['**/libepos2.so', '**/libeposeasyselect.so']
+        }
+    }
+}
+
+def vendorLibs = { String subdir ->
+    fileTree(dir: "libs/${subdir}", include: ['*.jar', '*.aar']).filter { it.exists() }
 }
 
 dependencies {
@@ -115,6 +133,16 @@ dependencies {
     implementation "androidx.webkit:webkit:1.14.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0"
+
+    // Official SUNMI InnerPrinter SDK (Maven Central)
+    implementation "com.sunmi:printerlibrary:1.0.24"
+
+    // Optional vendor SDKs — place AAR/JAR in android/app/libs/<brand>/ (see libs/README.md)
+    implementation vendorLibs('epson')
+    implementation vendorLibs('xprinter')
+    implementation vendorLibs('rongta')
+    implementation vendorLibs('gprinter')
+    implementation vendorLibs('custom')
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

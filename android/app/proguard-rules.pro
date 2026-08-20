@@ -8,3 +8,11 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+-keep class com.epson.** { *; }
+-dontwarn com.epson.**
+-keep class net.posprinter.** { *; }
+-dontwarn net.posprinter.**
+-keep class com.gprinter.** { *; }
+-dontwarn com.gprinter.**
+-keep class com.rt.printerlibrary.** { *; }
+-dontwarn com.rt.printerlibrary.**

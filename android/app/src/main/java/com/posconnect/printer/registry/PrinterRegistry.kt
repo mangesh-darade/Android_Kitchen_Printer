@@ -19,11 +19,12 @@ import com.posconnect.printer.model.PrinterProfile
 import com.posconnect.printer.transports.BleTransport
 import com.posconnect.printer.transports.BluetoothTransport
 import com.posconnect.printer.transports.BuiltInPrinterDetector
-import com.posconnect.printer.transports.BuiltInPrinterTransport
+import com.posconnect.printer.transports.SunmiBuiltInTransport
 import com.posconnect.printer.transports.PrinterTransport
 import com.posconnect.printer.transports.TcpTransport
 import com.posconnect.printer.transports.UnsupportedTransport
 import com.posconnect.printer.transports.UsbTransport
+import com.posconnect.printer.sdk.VendorAdapterFactory
 
 object PrinterRegistry {
     private val factoryMap = mutableMapOf<PrinterBrand, (PrinterTransport, PrinterProfile) -> PrinterAdapter>()
@@ -89,8 +90,12 @@ object PrinterFactory {
             }
             ConnectionType.BUILTIN -> {
                 if (BuiltInPrinterDetector.isAvailable()) {
-                    DiagnosticLogger.i(LogCategory.SDK, "PrinterFactory", "Built-in printer hardware detected (${android.os.Build.MANUFACTURER})")
-                    BuiltInPrinterTransport()
+                    DiagnosticLogger.i(
+                        LogCategory.SDK,
+                        "PrinterFactory",
+                        "Built-in SUNMI printer — using SUNMI PrinterLibrary 1.0.24"
+                    )
+                    SunmiBuiltInTransport(context)
                 } else {
                     DiagnosticLogger.w(LogCategory.SDK, "PrinterFactory", "Built-in printer is not available on this device")
                     UnsupportedTransport("Built-in printer is not available on this device")
@@ -101,7 +106,8 @@ object PrinterFactory {
 
     fun createPrinter(context: Context, config: PrinterConfig): PrinterAdapter {
         val profile = PrinterProfile.forWidth(config.width)
-        val transport = createTransport(context, config)
-        return PrinterRegistry.createAdapter(config.brand, transport, profile)
+        return VendorAdapterFactory.createWithFallback(context, config, profile) {
+            createTransport(context, config)
+        }
     }
 }
