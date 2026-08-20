@@ -22,6 +22,7 @@ import {
   testPrinter,
 } from '../native/posConnect';
 import {PRINT_ENGINES, PRINTER_BRANDS, usesExistingEscPosStack} from '../printer/enginePolicy';
+import {resolveActiveSdkTechName, resolveSdkPrintPath} from '../printer/vendorSdkCatalog';
 import {Field, RowChoice} from '../components/FormControls';
 import {colors, layout} from '../theme/styles';
 import {RootStackParamList} from '../App';
@@ -110,9 +111,22 @@ export function SetupScreen({navigation}: Props) {
         setError('Star identifier (IP or MAC) is required for StarIO10.');
         return;
       }
-      if (usesExistingEscPosStack(draft.printEngine) && draft.connection === 'LAN' && !draft.printerIp.trim()) {
-        setError('Printer IP is required for LAN ESC/POS.');
-        return;
+      if (usesExistingEscPosStack(draft.printEngine)) {
+        if (draft.connection === 'LAN' && !draft.printerIp.trim()) {
+          setError('Printer IP is required for LAN ESC/POS.');
+          return;
+        }
+        if (
+          (draft.connection === 'BLUETOOTH' || draft.connection === 'BLE') &&
+          !draft.macAddress.trim()
+        ) {
+          setError('Bluetooth MAC address is required for ESC/POS.');
+          return;
+        }
+        if (draft.connection === 'USB' && (!draft.usbVendorId || !draft.usbProductId)) {
+          setError('USB vendor ID and product ID are required for ESC/POS.');
+          return;
+        }
       }
       setStep(3);
       return;
@@ -196,6 +210,12 @@ export function SetupScreen({navigation}: Props) {
               patch({brand, printEngine: defaultPrintEngine(brand)});
             }}
           />
+          <Text style={styles.sdkLine}>
+            SDK: {resolveActiveSdkTechName(draft.brand, draft.printEngine, draft.connection)}
+          </Text>
+          <Text style={styles.sdkPathLine}>
+            Print path: {resolveSdkPrintPath(draft.brand, draft.printEngine, draft.connection)}
+          </Text>
           <RowChoice
             label="Print engine (Star SDKs + existing ESC/POS LAN)"
             options={PRINT_ENGINES.map(id => ({id, title: id.replace(/_/g, ' ')}))}
@@ -367,6 +387,9 @@ export function SetupScreen({navigation}: Props) {
           <Text style={styles.reviewLine}>
             Printer: {draft.brand} · {draft.printEngine} · {draft.width}
           </Text>
+          <Text style={styles.reviewSdk}>
+            SDK: {resolveActiveSdkTechName(draft.brand, draft.printEngine, draft.connection)}
+          </Text>
           <Text style={styles.reviewLine}>
             {draft.printEngine === 'STAR_IO10'
               ? `Star id: ${draft.starIdentifier || draft.printerIp || draft.macAddress}`
@@ -430,6 +453,9 @@ const styles = StyleSheet.create({
   choiceTextSelected: {color: colors.primary, fontWeight: '600'},
   review: {backgroundColor: '#F8FAFC', padding: 16, borderRadius: layout.radius, gap: 8},
   reviewLine: {fontSize: 15, color: colors.text},
+  reviewSdk: {fontSize: 14, color: colors.primary, fontWeight: '600'},
+  sdkLine: {fontSize: 14, color: colors.primary, fontWeight: '600', marginBottom: 4},
+  sdkPathLine: {fontSize: 13, color: colors.muted, marginBottom: 12},
   error: {color: colors.danger, marginTop: 8},
   status: {color: colors.muted, marginTop: 8},
   actions: {flexDirection: 'row', gap: 12, marginTop: 20},
