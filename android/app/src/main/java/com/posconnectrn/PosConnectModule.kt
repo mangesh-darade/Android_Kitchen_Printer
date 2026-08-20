@@ -17,6 +17,8 @@ import com.posconnect.core.logging.LogCategory
 import com.posconnect.printer.manager.PrinterManager
 import com.posconnect.printer.model.PrinterErrorCodes
 import com.posconnect.printer.transports.BuiltInPrinterDetector
+import com.posconnect.printer.vendor.VendorSdkRegistry
+import com.posconnect.printer.sdk.VendorSdkAvailability
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -103,6 +105,12 @@ class PosConnectModule(private val reactContext: ReactApplicationContext) :
                 "unknown"
             }
             val metrics = reactContext.resources.displayMetrics
+            val printer = repo.configState.value.printer
+            val sdk = VendorSdkRegistry.activeSdkInfo(
+                printer.brand,
+                printer.printEngine,
+                printer.connectionType
+            )
             val data = JSONObject().apply {
                 put("platform", "android")
                 put("osVersion", Build.VERSION.RELEASE)
@@ -111,9 +119,13 @@ class PosConnectModule(private val reactContext: ReactApplicationContext) :
                 put("appVersion", "1.0.0-rn")
                 put("screenSize", "${metrics.widthPixels}x${metrics.heightPixels}")
                 put("webViewVersion", webViewVersion)
-                put("printerEngineVersion", "3.0-STAR_IO10+ESC_POS")
-                put("printerCapability", repo.configState.value.printer.brand.name)
-                put("printEngine", repo.configState.value.printer.printEngine.name)
+                put("printerEngineVersion", "3.1-VENDOR_SDK_CATALOG")
+                put("printerCapability", printer.brand.name)
+                put("printEngine", printer.printEngine.name)
+                put("sdkTechName", sdk.sdkTechName)
+                put("sdkIntegrated", sdk.integrated)
+                put("sdkPrintPath", VendorSdkAvailability.printPath(printer))
+                put("sdkUsesVendorApi", VendorSdkAvailability.usesVendorApi(printer))
             }
             promise.resolve(wrapData(data))
         } catch (e: Exception) {

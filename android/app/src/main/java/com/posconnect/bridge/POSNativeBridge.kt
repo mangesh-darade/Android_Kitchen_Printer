@@ -13,6 +13,8 @@ import com.posconnect.core.logging.LogCategory
 import com.posconnect.core.security.SecurityManager
 import com.posconnect.printer.manager.PrinterManager
 import com.posconnect.printer.model.PrinterErrorCodes
+import com.posconnect.printer.vendor.VendorSdkRegistry
+import com.posconnect.printer.sdk.VendorSdkAvailability
 import com.posconnect.printer.model.PrinterResult
 import com.posconnect.printer.model.ReceiptData
 import kotlinx.coroutines.runBlocking
@@ -48,6 +50,27 @@ class POSNativeBridge(
 
     private fun unauthorizedResponse(): String {
         return PrinterResult.error(PrinterErrorCodes.UNAUTHORIZED_ORIGIN, "Unauthorized Origin").toJson().toString()
+    }
+
+    private fun printerDisabledResponse(): String =
+        PrinterResult.error(PrinterErrorCodes.PRINTER_OFFLINE, "Printer is disabled").toJson().toString()
+
+    private fun ensurePrinterEnabled(): String? =
+        if (!configRepo.configState.value.printer.enabled) printerDisabledResponse() else null
+
+    /** Block WebView thread until RN Star router finishes (kitchen must not mark delivered early). */
+    private fun starSync(
+        action: String,
+        printer: PrinterConfig,
+        text: String = "",
+        extra: Map<String, String> = emptyMap(),
+    ): String {
+        val result = runBlocking { StarPrintBridge.emitAndAwait(action, printer, text, extra) }
+        return if (result.ok) {
+            PrinterResult.success(result.message).toJson().toString()
+        } else {
+            PrinterResult.error(PrinterErrorCodes.PRINTER_OFFLINE, result.message).toJson().toString()
+        }
     }
 
     @JavascriptInterface
@@ -161,6 +184,7 @@ class POSNativeBridge(
     @JavascriptInterface
     fun printReceipt(receiptJsonStr: String): String {
         if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
         DiagnosticLogger.i(LogCategory.WEBVIEW, "POSNativeBridge", "JS invoked printReceipt()")
         val printer = configRepo.configState.value.printer
 
@@ -173,8 +197,7 @@ class POSNativeBridge(
         }
 
         if (StarPrintBridge.usesStarJsEngine(printer)) {
-            val jobId = StarPrintBridge.emit("printText", printer, displayText)
-            return PrinterResult.success("Queued Star receipt", JSONObject().put("jobId", jobId).put("status", "QUEUED")).toJson().toString()
+            return starSync("printText", printer, displayText)
         }
         return try {
             val json = JSONObject(receiptJsonStr)
@@ -191,6 +214,7 @@ class POSNativeBridge(
     @JavascriptInterface
     fun printText(textDataJsonStr: String): String {
         if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
         val printer = configRepo.configState.value.printer
 
         // If showPrintDialog ON → show confirmation dialog first
@@ -200,8 +224,7 @@ class POSNativeBridge(
         }
 
         if (StarPrintBridge.usesStarJsEngine(printer)) {
-            val jobId = StarPrintBridge.emit("printText", printer, text)
-            return PrinterResult.success("Queued Star print", JSONObject().put("jobId", jobId).put("status", "QUEUED")).toJson().toString()
+            return starSync("printText", printer, text)
         }
         return try {
             val json = JSONObject(textDataJsonStr)
@@ -217,10 +240,10 @@ class POSNativeBridge(
     @JavascriptInterface
     fun printImage(base64Image: String): String {
         if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
         val printer = configRepo.configState.value.printer
         if (StarPrintBridge.usesStarJsEngine(printer)) {
-            val jobId = StarPrintBridge.emit("printImage", printer, extra = mapOf("image" to base64Image))
-            return PrinterResult.success("Queued Star image", JSONObject().put("jobId", jobId).put("status", "QUEUED")).toJson().toString()
+            return starSync("printImage", printer, extra = mapOf("image" to base64Image))
         }
         val bitmap = com.posconnect.printer.escpos.TextRasterizer.decodeBase64Image(base64Image)
             ?: return PrinterResult.error(PrinterErrorCodes.INVALID_RECEIPT, "Invalid base64 image data").toJson().toString()
@@ -233,6 +256,7 @@ class POSNativeBridge(
     @JavascriptInterface
     fun printQRCode(qrDataJsonStr: String): String {
         if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
         val qrText = try {
             val json = JSONObject(qrDataJsonStr)
             json.optString("data", qrDataJsonStr)
@@ -241,8 +265,7 @@ class POSNativeBridge(
         }
         val printer = configRepo.configState.value.printer
         if (StarPrintBridge.usesStarJsEngine(printer)) {
-            val jobId = StarPrintBridge.emit("printQR", printer, extra = mapOf("qr" to qrText))
-            return PrinterResult.success("Queued Star QR", JSONObject().put("jobId", jobId).put("status", "QUEUED")).toJson().toString()
+            return starSync("printQR", printer, extra = mapOf("qr" to qrText))
         }
         val adapter = printerManager.getActiveAdapter()
             ?: return PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured").toJson().toString()
@@ -253,6 +276,7 @@ class POSNativeBridge(
     @JavascriptInterface
     fun printBarcode(barcodeDataJsonStr: String): String {
         if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
         val codeText = try {
             val json = JSONObject(barcodeDataJsonStr)
             json.optString("data", barcodeDataJsonStr)
@@ -261,8 +285,7 @@ class POSNativeBridge(
         }
         val printer = configRepo.configState.value.printer
         if (StarPrintBridge.usesStarJsEngine(printer)) {
-            val jobId = StarPrintBridge.emit("printBarcode", printer, extra = mapOf("barcode" to codeText))
-            return PrinterResult.success("Queued Star barcode", JSONObject().put("jobId", jobId).put("status", "QUEUED")).toJson().toString()
+            return starSync("printBarcode", printer, extra = mapOf("barcode" to codeText))
         }
         val adapter = printerManager.getActiveAdapter()
             ?: return PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured").toJson().toString()
@@ -273,10 +296,10 @@ class POSNativeBridge(
     @JavascriptInterface
     fun testPrinter(): String {
         if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
         val printer = configRepo.configState.value.printer
         if (StarPrintBridge.usesStarJsEngine(printer)) {
-            val jobId = StarPrintBridge.emit("testPrint", printer)
-            return PrinterResult.success("Queued Star test", JSONObject().put("jobId", jobId).put("status", "QUEUED")).toJson().toString()
+            return starSync("testPrint", printer)
         }
         val adapter = printerManager.getActiveAdapter()
             ?: return PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured").toJson().toString()
@@ -287,10 +310,10 @@ class POSNativeBridge(
     @JavascriptInterface
     fun openCashDrawer(): String {
         if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
         val printer = configRepo.configState.value.printer
         if (StarPrintBridge.usesStarJsEngine(printer)) {
-            val jobId = StarPrintBridge.emit("openDrawer", printer)
-            return PrinterResult.success("Queued Star drawer", JSONObject().put("jobId", jobId).put("status", "QUEUED")).toJson().toString()
+            return starSync("openDrawer", printer)
         }
         val res = runBlocking { printerManager.openCashDrawer() }
         return res.toJson().toString()
@@ -299,10 +322,13 @@ class POSNativeBridge(
     @JavascriptInterface
     fun cutPaper(): String {
         if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
         val printer = configRepo.configState.value.printer
+        if (StarPrintBridge.cutIncludedInPrintJob(printer)) {
+            return PrinterResult.success("Cut already included in ${printer.printEngine.name} print job").toJson().toString()
+        }
         if (StarPrintBridge.usesStarJsEngine(printer)) {
-            val jobId = StarPrintBridge.emit("cutPaper", printer)
-            return PrinterResult.success("Queued Star cut", JSONObject().put("jobId", jobId).put("status", "QUEUED")).toJson().toString()
+            return starSync("cutPaper", printer)
         }
         val res = runBlocking { printerManager.cutPaper() }
         return res.toJson().toString()
@@ -315,6 +341,7 @@ class POSNativeBridge(
     @JavascriptInterface
     fun showPrintDialog(textDataJsonStr: String?): String {
         if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
         DiagnosticLogger.i(LogCategory.WEBVIEW, "POSNativeBridge", "JS invoked showPrintDialog()")
         return showPrintDialogImpl(textDataJsonStr)
     }
@@ -327,6 +354,9 @@ class POSNativeBridge(
         }
 
         val printer = configRepo.configState.value.printer
+        if (!printer.enabled) {
+            return printerDisabledResponse()
+        }
 
         // If showPrintDialog is OFF → auto-print silently without a dialog
         if (!printer.showPrintDialog) {
@@ -485,6 +515,20 @@ class POSNativeBridge(
             put("usbProductId", printer.usbProductId)
             put("autoReconnect", printer.autoReconnect)
             put("retryCount", printer.retryCount)
+            put("cutIncludedInPrint", StarPrintBridge.cutIncludedInPrintJob(printer))
+            val sdk = VendorSdkRegistry.activeSdkInfo(
+                printer.brand,
+                printer.printEngine,
+                printer.connectionType
+            )
+            put("sdkTechName", sdk.sdkTechName)
+            put("sdkOfficialName", sdk.officialSdkName)
+            put("sdkVersion", sdk.version)
+            put("sdkSupply", sdk.supply)
+            put("sdkIntegrated", sdk.integrated)
+            put("sdkDownloadUrl", sdk.downloadUrl)
+            put("sdkPrintPath", VendorSdkAvailability.printPath(printer))
+            put("sdkUsesVendorApi", VendorSdkAvailability.usesVendorApi(printer))
         }
         return PrinterResult.success(data = data).toJson().toString()
     }

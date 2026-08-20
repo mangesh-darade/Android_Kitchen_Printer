@@ -23,6 +23,7 @@ import com.posconnect.printer.transports.UsbTransport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,6 +78,9 @@ class PrinterManager private constructor(private val context: Context) {
 
     fun getActiveAdapter(): PrinterAdapter? = activeAdapter
 
+    private fun printerDisabledResult(): PrinterResult =
+        PrinterResult.error(PrinterErrorCodes.PRINTER_OFFLINE, "Printer is disabled")
+
     private suspend fun reconfigurePrinter(config: PrinterConfig) {
         DiagnosticLogger.i(LogCategory.PRINTER, "PrinterManager", "Reconfiguring printer adapter for ${config.name} (${config.connectionType})")
         activeAdapter?.disconnect()
@@ -89,23 +93,46 @@ class PrinterManager private constructor(private val context: Context) {
     }
 
     suspend fun connectActivePrinter(): PrinterResult = withContext(Dispatchers.IO) {
+        val config = configRepo.configState.value.printer
+        if (!config.enabled) {
+            _printerStatus.value = PrinterStatus.offline("Printer is disabled")
+            return@withContext printerDisabledResult()
+        }
+
         val adapter = activeAdapter ?: run {
-            val config = configRepo.configState.value.printer
             val newAdapter = PrinterFactory.createPrinter(context, config)
             activeAdapter = newAdapter
             newAdapter
         }
 
-        DiagnosticLogger.i(LogCategory.PRINTER, "PrinterManager", "Connecting active printer...")
-        val res = adapter.connect()
-        if (res.success) {
-            _printerStatus.value = PrinterStatus.onlineReady()
-            DiagnosticLogger.i(LogCategory.PRINTER, "PrinterManager", "Active printer connected successfully")
-        } else {
-            _printerStatus.value = PrinterStatus.offline(res.message)
-            DiagnosticLogger.w(LogCategory.PRINTER, "PrinterManager", "Failed to connect active printer: ${res.message}")
+        val maxAttempts = (config.retryCount + 1).coerceAtLeast(1)
+        var lastResult = PrinterResult.error(PrinterErrorCodes.PRINTER_OFFLINE, "Connect failed")
+
+        for (attempt in 1..maxAttempts) {
+            DiagnosticLogger.i(
+                LogCategory.PRINTER,
+                "PrinterManager",
+                "Connecting active printer (attempt $attempt/$maxAttempts)...",
+            )
+            lastResult = adapter.connect()
+            if (lastResult.success) {
+                _printerStatus.value = PrinterStatus.onlineReady()
+                DiagnosticLogger.i(LogCategory.PRINTER, "PrinterManager", "Active printer connected successfully")
+                return@withContext lastResult
+            }
+            DiagnosticLogger.w(
+                LogCategory.PRINTER,
+                "PrinterManager",
+                "Connect attempt $attempt failed: ${lastResult.message}",
+            )
+            if (attempt < maxAttempts) {
+                delay(500L * attempt)
+            }
         }
-        res
+
+        _printerStatus.value = PrinterStatus.offline(lastResult.message)
+        DiagnosticLogger.w(LogCategory.PRINTER, "PrinterManager", "Failed to connect active printer: ${lastResult.message}")
+        lastResult
     }
 
     suspend fun disconnectActivePrinter(): PrinterResult = withContext(Dispatchers.IO) {
@@ -136,6 +163,9 @@ class PrinterManager private constructor(private val context: Context) {
     }
 
     suspend fun printReceiptDirect(receipt: ReceiptData): PrinterResult = withContext(Dispatchers.IO) {
+        if (!configRepo.configState.value.printer.enabled) {
+            return@withContext printerDisabledResult()
+        }
         val adapter = activeAdapter ?: run {
             val config = configRepo.configState.value.printer
             val newAdapter = PrinterFactory.createPrinter(context, config)
@@ -146,16 +176,25 @@ class PrinterManager private constructor(private val context: Context) {
     }
 
     suspend fun printTextDirect(text: String, isBold: Boolean = false): PrinterResult = withContext(Dispatchers.IO) {
+        if (!configRepo.configState.value.printer.enabled) {
+            return@withContext printerDisabledResult()
+        }
         val adapter = activeAdapter ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
         adapter.printText(text, isBold)
     }
 
     suspend fun openCashDrawer(): PrinterResult = withContext(Dispatchers.IO) {
+        if (!configRepo.configState.value.printer.enabled) {
+            return@withContext printerDisabledResult()
+        }
         val adapter = activeAdapter ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
         adapter.openCashDrawer()
     }
 
     suspend fun cutPaper(): PrinterResult = withContext(Dispatchers.IO) {
+        if (!configRepo.configState.value.printer.enabled) {
+            return@withContext printerDisabledResult()
+        }
         val adapter = activeAdapter ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
         val printer = configRepo.configState.value.printer
         adapter.cutPaper(partial = printer.cutMode != "full")
