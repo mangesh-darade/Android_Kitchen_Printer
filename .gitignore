@@ -72,3 +72,20 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Ignore Android APK builds in the root
+*.apk
+
+# Ignore downloaded SDKs and extracted folders in scripts
+scripts/epson_sdk.zip
+scripts/epson_sdk_extracted/
+scripts/react-native-epson-escposprinter-2.1.0.tgz
+scripts/_ble_gprinter/
+scripts/_gp_extract/
+scripts/_gprinter_sdk_src/
+scripts/_printerdome/
+scripts/_rongta_cap/
+scripts/_rongta_sdk_src/
+scripts/_xp_extract/
+scripts/_xprinter_sdk_src/
+scripts/package/
