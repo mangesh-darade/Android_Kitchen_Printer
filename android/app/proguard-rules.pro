@@ -16,3 +16,10 @@
 -dontwarn com.gprinter.**
 -keep class com.rt.printerlibrary.** { *; }
 -dontwarn com.rt.printerlibrary.**
+
+# Keep JavascriptInterface methods
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keep class com.posconnect.bridge.POSNativeBridge { *; }
+-keep class com.posconnectrn.webview.POSWebView { *; }

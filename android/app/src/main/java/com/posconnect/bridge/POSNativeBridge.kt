@@ -39,7 +39,10 @@ class POSNativeBridge(
     }
 
     private fun validateOrigin(): Boolean {
-        val currentUrl = webViewProvider()?.url
+        val wv = webViewProvider()
+        val currentUrl = (wv as? com.posconnectrn.POSWebView)?.lastLoadedUrl
+            ?.takeIf { it.isNotBlank() }
+            ?: configRepo.configState.value.division.url
         val config = configRepo.configState.value
         val allowed = SecurityManager.isOriginAllowed(currentUrl, config)
         if (!allowed) {
@@ -387,43 +390,8 @@ class POSNativeBridge(
                 DiagnosticLogger.w(LogCategory.WEBVIEW, "POSNativeBridge", "Cannot show print dialog — no Activity")
                 return@Runnable
             }
-
-            androidx.appcompat.app.AlertDialog.Builder(activity)
-                .setTitle("Print Receipt")
-                .setMessage(
-                    "Send to: $printerLabel\n" +
-                    "${printer.connectionType.displayName} · ${printer.width.displayName} · ${printer.brand.displayName}"
-                )
-                .setPositiveButton("Print") { _, _ ->
-                    Thread {
-                        val active = configRepo.configState.value.printer
-                        if (StarPrintBridge.usesStarJsEngine(active)) {
-                            StarPrintBridge.emit("printText", active, text)
-                            return@Thread
-                        }
-                        runBlocking {
-                            if (!printerManager.printerStatus.value.connected) {
-                                printerManager.connectActivePrinter()
-                            }
-                            val res = printerManager.printTextDirect(text, false)
-                            if (res.success && configRepo.configState.value.printer.autoCut) {
-                                printerManager.cutPaper()
-                            }
-                            notifyJsPrintResult(res.success)
-                        }
-                    }.start()
-                }
-                .setNeutralButton("System Print") { _, _ ->
-                    showSystemPrintDialog(activity)
-                    notifyJsPrintResult(true)
-                }
-                .setNegativeButton("Cancel") { _, _ ->
-                    notifyJsPrintResult(false)
-                }
-                .setOnCancelListener {
-                    notifyJsPrintResult(false)
-                }
-                .show()
+            showSystemPrintDialog(activity)
+            notifyJsPrintResult(true)
         }
         // Post to UI thread via WebView if available, else via Activity handler
         val wv = webViewProvider()

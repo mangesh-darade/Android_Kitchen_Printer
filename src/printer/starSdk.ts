@@ -170,10 +170,7 @@ export async function starTestPrint(printer: PrinterConfig): Promise<PluginResul
     try {
       await withPrinter(printer, async device => {
         warnIfGraphicsOnly(device);
-        const commands = await buildTestPrintCommands(
-          printer.width,
-          printer.cutMode
-        );
+        const commands = await buildTestPrintCommands(printer.width, printer.cutMode);
         await device.print(commands);
       });
       return {success: true, message: 'StarIO10 test print sent'};
@@ -350,3 +347,4 @@ function warnIfGraphicsOnly(device: StarPrinter) {
 }
 
 export {buildStarCommands};
+

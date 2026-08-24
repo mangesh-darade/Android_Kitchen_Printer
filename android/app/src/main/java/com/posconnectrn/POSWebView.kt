@@ -27,6 +27,9 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
     private var bridgeAttached = false
     private var currentUrl = ""
 
+    @Volatile
+    var lastLoadedUrl: String = ""
+
     init {
         setBackgroundColor(Color.parseColor("#FFFFFF"))
         settings.apply {
@@ -55,6 +58,7 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
                 val url = request?.url?.toString() ?: return false
                 val config = ConfigurationRepository.getInstance(reactContext).configState.value
                 if (SecurityManager.isOriginAllowed(url, config)) {
+                    lastLoadedUrl = url
                     return false
                 }
                 if (!config.security.allowExternalNavigation) {
@@ -64,6 +68,9 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
+                if (!url.isNullOrBlank()) {
+                    lastLoadedUrl = url
+                }
                 attachBridgeIfNeeded()
                 view?.evaluateJavascript(PosNativeJs.WRAPPER, null)
                 view?.evaluateJavascript(PosNativeJs.PRINT_HOOK, null)
@@ -97,6 +104,7 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
             return
         }
         attachBridgeIfNeeded()
+        lastLoadedUrl = currentUrl
         loadUrl(currentUrl)
     }
 

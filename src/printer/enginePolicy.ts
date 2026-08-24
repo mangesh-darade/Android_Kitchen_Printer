@@ -37,7 +37,7 @@ export function cutIncludedInPrint(engine: PrintEngine, autoCut: boolean): boole
   if (!autoCut) {
     return false;
   }
-  return engine === 'STAR_IO10' || engine === 'PASSPRNT';
+  return engine === 'STAR_IO10';
 }
 
 export function connectionToStarInterface(connection: ConnectionType): StarInterface {
@@ -88,3 +88,4 @@ export function passPrntDotWidth(width: PrinterConfig['width']): number {
 export function printableAreaMm(width: PrinterConfig['width']): number {
   return width === '4inch' ? 104 : 72;
 }
+

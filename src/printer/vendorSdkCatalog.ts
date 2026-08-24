@@ -133,7 +133,7 @@ export function resolveSdkIntegrationStatus(
   connection: ConnectionType,
 ): 'integrated' | 'fallback' | 'partial' {
   const path = resolveSdkPrintPath(brand, printEngine, connection);
-  if (path === 'vendor_sdk' || path === 'star_js' || path === 'passprnt' || path === 'cloudprnt') {
+  if (path === 'vendor_sdk' || path === 'star_js' || path) {
     return 'integrated';
   }
   if (brand === 'RONGTA') {
@@ -161,3 +161,4 @@ export function printerSdkSettingsFields(
     sdkUsesVendorApi: printPath === 'vendor_sdk' || printPath === 'star_js',
   };
 }
+

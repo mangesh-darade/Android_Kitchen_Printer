@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {useFocusEffect} from '@react-navigation/native';
 import {POSWebViewNative} from '../components/POSWebViewNative';
 import {loadConfig, resetApplication, saveConfig, draftFromConfig, buildConfigFromDraft, startStarPrintListener} from '../native/posConnect';
 import {AppConfig} from '../core/config/models';
@@ -29,9 +30,11 @@ export function PosSessionScreen({navigation}: Props) {
     }
   }, [navigation]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   useEffect(() => {
     const unsub = startStarPrintListener();
