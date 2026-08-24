@@ -51,12 +51,28 @@ class POSNativeBridge(
         return allowed
     }
 
+    private fun showToast(message: String) {
+        val uiRunnable = Runnable {
+            val act = resolveActivity() ?: context
+            android.widget.Toast.makeText(act, message, android.widget.Toast.LENGTH_LONG).show()
+        }
+        val wv = webViewProvider()
+        if (wv != null) {
+            wv.post(uiRunnable)
+        } else {
+            resolveActivity()?.runOnUiThread(uiRunnable)
+        }
+    }
+
     private fun unauthorizedResponse(): String {
+        showToast("POS Native: Unauthorized origin access")
         return PrinterResult.error(PrinterErrorCodes.UNAUTHORIZED_ORIGIN, "Unauthorized Origin").toJson().toString()
     }
 
-    private fun printerDisabledResponse(): String =
-        PrinterResult.error(PrinterErrorCodes.PRINTER_OFFLINE, "Printer is disabled").toJson().toString()
+    private fun printerDisabledResponse(): String {
+        showToast("POS Native: Printer is disabled in Settings")
+        return PrinterResult.error(PrinterErrorCodes.PRINTER_OFFLINE, "Printer is disabled").toJson().toString()
+    }
 
     private fun ensurePrinterEnabled(): String? =
         if (!configRepo.configState.value.printer.enabled) printerDisabledResponse() else null
@@ -229,15 +245,17 @@ class POSNativeBridge(
         if (StarPrintBridge.usesStarJsEngine(printer)) {
             return starSync("printText", printer, text)
         }
-        return try {
+        val res = try {
             val json = JSONObject(textDataJsonStr)
             val isBold = json.optBoolean("isBold", false)
-            val res = runBlocking { printerManager.printTextDirect(text, isBold) }
-            res.toJson().toString()
+            runBlocking { printerManager.printTextDirect(text, isBold) }
         } catch (e: Exception) {
-            val res = runBlocking { printerManager.printTextDirect(textDataJsonStr, false) }
-            res.toJson().toString()
+            runBlocking { printerManager.printTextDirect(textDataJsonStr, false) }
         }
+        if (!res.success) {
+            showToast("Printer Error: ${res.message}")
+        }
+        return res.toJson().toString()
     }
 
     @JavascriptInterface
