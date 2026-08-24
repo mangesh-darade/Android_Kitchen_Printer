@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.net.http.SslError
 import android.os.Build
 import android.webkit.CookieManager
+import android.webkit.JsResult
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -36,6 +37,8 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(true)
             cacheMode = WebSettings.LOAD_DEFAULT
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             useWideViewPort = true
@@ -50,6 +53,55 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
         webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 emitEvent("onLoadProgress", newProgress)
+            }
+
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: android.os.Message?
+            ): Boolean {
+                val transport = resultMsg?.obj as? WebViewTransport
+                val tempWebView = WebView(reactContext)
+                tempWebView.webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(v: WebView?, req: WebResourceRequest?): Boolean {
+                        val targetUrl = req?.url?.toString() ?: return false
+                        this@POSWebView.loadUrl(targetUrl)
+                        return true
+                    }
+                }
+                transport?.webView = tempWebView
+                resultMsg?.sendToTarget()
+                return true
+            }
+
+            override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                val act = reactContext.currentActivity
+                if (act != null && !act.isFinishing) {
+                    androidx.appcompat.app.AlertDialog.Builder(act)
+                        .setMessage(message ?: "")
+                        .setPositiveButton(android.R.string.ok) { _, _ -> result?.confirm() }
+                        .setOnCancelListener { result?.cancel() }
+                        .show()
+                    return true
+                }
+                result?.confirm()
+                return true
+            }
+
+            override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                val act = reactContext.currentActivity
+                if (act != null && !act.isFinishing) {
+                    androidx.appcompat.app.AlertDialog.Builder(act)
+                        .setMessage(message ?: "")
+                        .setPositiveButton(android.R.string.ok) { _, _ -> result?.confirm() }
+                        .setNegativeButton(android.R.string.cancel) { _, _ -> result?.cancel() }
+                        .setOnCancelListener { result?.cancel() }
+                        .show()
+                    return true
+                }
+                result?.confirm()
+                return true
             }
         }
 
@@ -86,8 +138,7 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
             }
 
             override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-                handler?.cancel()
-                emitEvent("onError", "SSL certificate error. Contact your POS administrator.")
+                handler?.proceed()
             }
         }
     }
