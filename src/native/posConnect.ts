@@ -32,7 +32,6 @@ type PosConnectNative = {
   discoverPrinters(connection: string): Promise<string>;
   connectPrinter(printerJson: string | null): Promise<string>;
   testPrinter(): Promise<string>;
-  isBuiltInPrinterAvailable(): Promise<string>;
   checkUrlReachable(url: string): Promise<string>;
   exportLogs(): Promise<string>;
   notifyPrintResult(jobId: string, success: boolean, message: string): Promise<string>;
@@ -131,14 +130,7 @@ export async function testPrinter(config?: AppConfig): Promise<PluginResult> {
   return parseResult(await Native.testPrinter());
 }
 
-export async function isBuiltInPrinterAvailable(): Promise<boolean> {
-  if (!Native) {
-    return false;
-  }
-  const raw = await Native.isBuiltInPrinterAvailable();
-  const result = parseResult<{available: boolean}>(raw);
-  return !!result.data?.available;
-}
+
 
 export async function checkUrlReachable(url: string): Promise<boolean> {
   if (!Native) {
@@ -220,15 +212,7 @@ export function buildConfigFromDraft(draft: SetupDraft): AppConfig {
     ...base,
     setupCompleted: true,
     division: {
-      name: draft.divisionName.trim(),
-      code: draft.divisionCode.trim(),
       url: draft.divisionUrl.trim(),
-    },
-    customer: {
-      name: draft.customerName.trim(),
-      code: draft.customerCode.trim(),
-      store: draft.storeName.trim(),
-      device: draft.deviceName.trim(),
     },
     printer: {
       ...base.printer,
@@ -244,10 +228,6 @@ export function buildConfigFromDraft(draft: SetupDraft): AppConfig {
       autoCut: draft.autoCut,
       cutMode: draft.cutMode,
       printEngine,
-      cashDrawer: draft.cashDrawer,
-      cloudPrntUrl: draft.cloudPrntUrl.trim(),
-      passPrntPort: draft.passPrntPort.trim(),
-      passPrntSettings: draft.passPrntSettings.trim(),
       name: draft.printerName.trim() || 'Receipt Printer',
       enabled: draft.printerEnabled,
       deviceName: draft.printerDeviceName.trim(),
@@ -265,13 +245,7 @@ export function buildConfigFromDraft(draft: SetupDraft): AppConfig {
 }
 
 export type SetupDraft = {
-  divisionName: string;
-  divisionCode: string;
   divisionUrl: string;
-  customerName: string;
-  customerCode: string;
-  storeName: string;
-  deviceName: string;
   width: '3inch' | '4inch';
   connection: ConnectionType;
   printerIp: string;
@@ -284,10 +258,6 @@ export type SetupDraft = {
   model: string;
   printEngine: PrintEngine;
   starIdentifier: string;
-  cashDrawer: boolean;
-  cloudPrntUrl: string;
-  passPrntPort: string;
-  passPrntSettings: string;
   printerName: string;
   printerEnabled: boolean;
   printerDeviceName: string;
@@ -299,13 +269,7 @@ export type SetupDraft = {
 
 export function emptyDraft(): SetupDraft {
   return {
-    divisionName: '',
-    divisionCode: '',
     divisionUrl: '',
-    customerName: '',
-    customerCode: '',
-    storeName: '',
-    deviceName: '',
     width: '3inch',
     connection: 'LAN',
     printerIp: '',
@@ -318,10 +282,6 @@ export function emptyDraft(): SetupDraft {
     model: '',
     printEngine: 'ESC_POS',
     starIdentifier: '',
-    cashDrawer: false,
-    cloudPrntUrl: '',
-    passPrntPort: '',
-    passPrntSettings: '',
     printerName: 'Receipt Printer',
     printerEnabled: true,
     printerDeviceName: '',
@@ -334,13 +294,7 @@ export function emptyDraft(): SetupDraft {
 
 export function draftFromConfig(config: AppConfig): SetupDraft {
   return {
-    divisionName: config.division.name,
-    divisionCode: config.division.code,
     divisionUrl: config.division.url,
-    customerName: config.customer.name,
-    customerCode: config.customer.code,
-    storeName: config.customer.store,
-    deviceName: config.customer.device,
     width: config.printer.width,
     connection: config.printer.connection,
     printerIp: config.printer.ip,
@@ -353,10 +307,6 @@ export function draftFromConfig(config: AppConfig): SetupDraft {
     model: config.printer.model,
     printEngine: config.printer.printEngine,
     starIdentifier: starIdentifierFromPrinter(config.printer),
-    cashDrawer: config.printer.cashDrawer,
-    cloudPrntUrl: config.printer.cloudPrntUrl,
-    passPrntPort: config.printer.passPrntPort,
-    passPrntSettings: config.printer.passPrntSettings,
     printerName: config.printer.name,
     printerEnabled: config.printer.enabled,
     printerDeviceName: config.printer.deviceName,

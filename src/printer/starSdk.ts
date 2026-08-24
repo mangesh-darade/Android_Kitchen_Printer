@@ -154,7 +154,6 @@ export async function printStarText(
           barcode: extra?.barcode,
           autoCut: printer.autoCut,
           cutMode: printer.cutMode,
-          cashDrawer: printer.cashDrawer,
           width: printer.width,
         });
         await device.print(commands);
@@ -173,8 +172,7 @@ export async function starTestPrint(printer: PrinterConfig): Promise<PluginResul
         warnIfGraphicsOnly(device);
         const commands = await buildTestPrintCommands(
           printer.width,
-          printer.cutMode,
-          printer.cashDrawer,
+          printer.cutMode
         );
         await device.print(commands);
       });

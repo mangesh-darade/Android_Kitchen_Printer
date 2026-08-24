@@ -1,7 +1,5 @@
 import type {PluginResult, PrinterConfig} from '../core/config/models';
-import type {printWithCloudPrnt} from './cloudPrnt';
 import {usesExistingEscPosStack} from './enginePolicy';
-import type {printWithPassPrnt} from './passPrnt';
 import type {
   printStarImage,
   printStarText,
@@ -39,11 +37,9 @@ export type PrintRouterDeps = {
   starCut?: typeof starCutPaper;
   starDrawer?: typeof starOpenDrawer;
   starImage?: typeof printStarImage;
-  passPrnt?: typeof printWithPassPrnt;
-  cloudPrnt?: typeof printWithCloudPrnt;
 };
 
-/** STAR_IO10 / PassPRNT / CloudPRNT must not open existing ESC/POS TcpTransport. */
+/** STAR_IO10 must not open existing ESC/POS TcpTransport. */
 export function shouldSkipEscPosTransport(engine: PrinterConfig['printEngine']): boolean {
   return engine !== 'ESC_POS';
 }
@@ -61,25 +57,7 @@ export async function routePrint(
   let result: PluginResult;
 
   switch (engine) {
-    case 'PASSPRNT': {
-      const passPrnt = deps.passPrnt ?? require('./passPrnt').printWithPassPrnt;
-      result = await passPrnt({
-        text: jobText(job),
-        printer: job.printer,
-        openDrawer: job.action === 'openDrawer' || job.printer.cashDrawer,
-        imageBase64: job.imageBase64,
-      });
-      break;
-    }
-    case 'CLOUDPRNT': {
-      const cloudPrnt = deps.cloudPrnt ?? require('./cloudPrnt').printWithCloudPrnt;
-      result = await cloudPrnt({
-        text: jobText(job),
-        printer: job.printer,
-        imageBase64: job.imageBase64,
-      });
-      break;
-    }
+
     case 'STAR_IO10':
       result = await routeStar(job, deps);
       break;

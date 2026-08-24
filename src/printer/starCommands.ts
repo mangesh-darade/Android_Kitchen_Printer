@@ -9,7 +9,6 @@ export type StarCommandOptions = {
   bold?: boolean;
   autoCut?: boolean;
   cutMode?: PrinterCutMode;
-  cashDrawer?: boolean;
   width?: PrinterWidthClass;
   qr?: string;
   barcode?: string;
@@ -69,13 +68,6 @@ function documentFor(options: StarCommandOptions): StarXpandCommand.DocumentBuil
     document.settingPrintableArea(printableAreaMm(options.width));
   }
   document.addPrinter(printerBuilder(options));
-  if (options.cashDrawer) {
-    document.addDrawer(
-      new StarXpandCommand.DrawerBuilder().actionOpen(
-        new StarXpandCommand.Drawer.OpenParameter(),
-      ),
-    );
-  }
   return document;
 }
 
@@ -95,7 +87,6 @@ export async function buildTextCommands(
 export async function buildTestPrintCommands(
   width: PrinterWidthClass,
   cutMode: PrinterCutMode,
-  cashDrawer: boolean,
 ): Promise<string> {
   return buildStarCommands({
     text:
@@ -105,7 +96,6 @@ export async function buildTestPrintCommands(
       `Cut: ${cutMode}\n`,
     autoCut: true,
     cutMode,
-    cashDrawer,
     width,
   });
 }

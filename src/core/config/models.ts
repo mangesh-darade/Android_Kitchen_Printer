@@ -8,7 +8,7 @@ export type PrinterBrand =
   | "XPRINTER"
   | "RONGTA"
   | "GPRINTER";
-export type PrintEngine = "STAR_IO10" | "PASSPRNT" | "CLOUDPRNT" | "ESC_POS";
+export type PrintEngine = "STAR_IO10" | "ESC_POS";
 /** StarIO10 InterfaceType names — do not invent UsbVendor (not in StarIO10 1.13). */
 export type StarInterface = "Lan" | "Bluetooth" | "BluetoothLE" | "Usb";
 export type OrientationMode = "portrait" | "landscape" | "auto";
@@ -27,17 +27,10 @@ export interface PrinterProfile {
 }
 
 export interface DivisionConfig {
-  name: string;
-  code: string;
   url: string;
 }
 
-export interface CustomerConfig {
-  name: string;
-  code: string;
-  store: string;
-  device: string;
-}
+
 
 export interface PrinterConfig {
   id: string;
@@ -60,10 +53,6 @@ export interface PrinterConfig {
   cutMode: PrinterCutMode;
   printEngine: PrintEngine;
   starIdentifier: string;
-  cashDrawer: boolean;
-  cloudPrntUrl: string;
-  passPrntPort: string;
-  passPrntSettings: string;
   profile: PrinterProfile;
 }
 
@@ -79,7 +68,6 @@ export interface AppConfig {
   setupCompleted: boolean;
   orientation: OrientationMode;
   division: DivisionConfig;
-  customer: CustomerConfig;
   printer: PrinterConfig;
   printers: PrinterConfig[];
   security: SecurityConfig;
@@ -179,8 +167,9 @@ export function emptyConfig(configVersion = 1): AppConfig {
     configVersion,
     setupCompleted: false,
     orientation: "portrait",
-    division: { name: "", code: "", url: "" },
-    customer: { name: "", code: "", store: "", device: "" },
+    division: {
+      url: "",
+    },
     printer: {
       id: "primary_receipt",
       name: "Receipt Printer",
@@ -202,10 +191,6 @@ export function emptyConfig(configVersion = 1): AppConfig {
       cutMode: "partial",
       printEngine: "ESC_POS",
       starIdentifier: "",
-      cashDrawer: false,
-      cloudPrntUrl: "",
-      passPrntPort: "",
-      passPrntSettings: "",
       profile: profileForWidth("3inch")
     },
     printers: [],

@@ -8,8 +8,6 @@ import type {
 
 export const PRINT_ENGINES: PrintEngine[] = [
   'STAR_IO10',
-  'PASSPRNT',
-  'CLOUDPRNT',
   'ESC_POS',
 ];
 

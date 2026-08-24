@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {validatePosUrl, type PrintEngine, type PrinterBrand} from '../core/config/models';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { validatePosUrl, type PrintEngine, type PrinterBrand } from '../core/config/models';
 import {
   buildConfigFromDraft,
   checkUrlReachable,
@@ -21,17 +21,17 @@ import {
   SetupDraft,
   testPrinter,
 } from '../native/posConnect';
-import {PRINT_ENGINES, PRINTER_BRANDS, usesExistingEscPosStack} from '../printer/enginePolicy';
-import {resolveActiveSdkTechName, resolveSdkPrintPath} from '../printer/vendorSdkCatalog';
-import {Field, RowChoice} from '../components/FormControls';
-import {colors, layout} from '../theme/styles';
-import {RootStackParamList} from '../App';
+import { PRINT_ENGINES, PRINTER_BRANDS, usesExistingEscPosStack } from '../printer/enginePolicy';
+import { resolveActiveSdkTechName, resolveSdkPrintPath } from '../printer/vendorSdkCatalog';
+import { Field, RowChoice, DropdownChoice } from '../components/FormControls';
+import { colors, layout } from '../theme/styles';
+import { RootStackParamList } from '../App';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Setup'>;
 
-const STEPS = ['Division', 'Customer', 'Printer', 'Review'] as const;
+const STEPS = ['Division', 'Printer', 'Review'] as const;
 
-export function SetupScreen({navigation}: Props) {
+export function SetupScreen({ navigation }: Props) {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<SetupDraft>(emptyDraft());
   const [error, setError] = useState('');
@@ -39,7 +39,7 @@ export function SetupScreen({navigation}: Props) {
   const [status, setStatus] = useState('');
 
   function patch(partial: Partial<SetupDraft>) {
-    setDraft(prev => ({...prev, ...partial}));
+    setDraft(prev => ({ ...prev, ...partial }));
   }
 
   async function finishSetup() {
@@ -74,7 +74,7 @@ export function SetupScreen({navigation}: Props) {
     if (step === 0) {
       const checked = validatePosUrl(draft.divisionUrl);
       if (checked.ok) {
-        patch({divisionUrl: checked.url});
+        patch({ divisionUrl: checked.url });
         void checkUrlReachable(checked.url)
           .then(ok => {
             if (!ok) {
@@ -90,18 +90,7 @@ export function SetupScreen({navigation}: Props) {
       return;
     }
     if (step === 1) {
-      if (!draft.customerName.trim()) {
-        setError('Customer name is required.');
-        return;
-      }
-      setStep(2);
-      return;
-    }
-    if (step === 2) {
-      if (draft.printEngine === 'CLOUDPRNT' && !draft.cloudPrntUrl.trim()) {
-        setError('CloudPRNT URL is required.');
-        return;
-      }
+
       if (
         draft.printEngine === 'STAR_IO10' &&
         !draft.starIdentifier.trim() &&
@@ -128,10 +117,10 @@ export function SetupScreen({navigation}: Props) {
           return;
         }
       }
-      setStep(3);
+      setStep(2);
       return;
     }
-    if (step === 3) {
+    if (step === 2) {
       void finishSetup();
     }
   }
@@ -177,12 +166,11 @@ export function SetupScreen({navigation}: Props) {
 
       {step === 0 && (
         <>
-          <Field label="Division name" value={draft.divisionName} onChangeText={v => patch({divisionName: v})} />
-          <Field label="Division code" value={draft.divisionCode} onChangeText={v => patch({divisionCode: v})} />
+
           <Field
-            label="Division URL (kitchen: .../screens/display/1)"
+            label="Division URL"
             value={draft.divisionUrl}
-            onChangeText={v => patch({divisionUrl: v})}
+            onChangeText={v => patch({ divisionUrl: v })}
             autoCapitalize="none"
           />
         </>
@@ -190,15 +178,7 @@ export function SetupScreen({navigation}: Props) {
 
       {step === 1 && (
         <>
-          <Field label="Customer name" value={draft.customerName} onChangeText={v => patch({customerName: v})} />
-          <Field label="Store" value={draft.storeName} onChangeText={v => patch({storeName: v})} />
-          <Field label="Device name" value={draft.deviceName} onChangeText={v => patch({deviceName: v})} />
-        </>
-      )}
-
-      {step === 2 && (
-        <>
-          <RowChoice
+          <DropdownChoice
             label="Printer brand"
             options={PRINTER_BRANDS.map(id => ({
               id,
@@ -207,7 +187,7 @@ export function SetupScreen({navigation}: Props) {
             selected={draft.brand}
             onSelect={v => {
               const brand = v as PrinterBrand;
-              patch({brand, printEngine: defaultPrintEngine(brand)});
+              patch({ brand, printEngine: defaultPrintEngine(brand) });
             }}
           />
           <Text style={styles.sdkLine}>
@@ -216,109 +196,101 @@ export function SetupScreen({navigation}: Props) {
           <Text style={styles.sdkPathLine}>
             Print path: {resolveSdkPrintPath(draft.brand, draft.printEngine, draft.connection)}
           </Text>
-          <RowChoice
+          <DropdownChoice
             label="Print engine (Star SDKs + existing ESC/POS LAN)"
-            options={PRINT_ENGINES.map(id => ({id, title: id.replace(/_/g, ' ')}))}
+            options={PRINT_ENGINES.map(id => ({ id, title: id.replace(/_/g, ' ') }))}
             selected={draft.printEngine}
-            onSelect={v => patch({printEngine: v as PrintEngine})}
+            onSelect={v => patch({ printEngine: v as PrintEngine })}
           />
-          <RowChoice
+          <DropdownChoice
             label="Interface"
             options={[
-              {id: 'LAN', title: 'LAN / Wi-Fi'},
-              {id: 'BLUETOOTH', title: 'Bluetooth'},
-              {id: 'BLE', title: 'BLE'},
-              {id: 'USB', title: 'USB'},
+              { id: 'LAN', title: 'LAN / Wi-Fi' },
+              { id: 'BLUETOOTH', title: 'Bluetooth' },
+              { id: 'BLE', title: 'BLE' },
+              { id: 'USB', title: 'USB' },
             ]}
             selected={draft.connection}
-            onSelect={v => patch({connection: v as SetupDraft['connection']})}
+            onSelect={v => patch({ connection: v as SetupDraft['connection'] })}
           />
-          <RowChoice
+          <DropdownChoice
             label="Paper width"
             options={[
-              {id: '3inch', title: '3 inch (48 cols / 576 dots)'},
-              {id: '4inch', title: '4 inch (64 cols / 832 dots)'},
+              { id: '3inch', title: '3 inch (48 cols / 576 dots)' },
+              { id: '4inch', title: '4 inch (64 cols / 832 dots)' },
             ]}
             selected={draft.width}
-            onSelect={v => patch({width: v as SetupDraft['width']})}
+            onSelect={v => patch({ width: v as SetupDraft['width'] })}
           />
-          <RowChoice
+          <DropdownChoice
             label="Print mode"
             options={[
-              {id: 'off', title: 'Auto print (kitchen)'},
-              {id: 'on', title: 'Show confirm dialog'},
+              { id: 'off', title: 'Auto print (kitchen)' },
+              { id: 'on', title: 'Show confirm dialog' },
             ]}
             selected={draft.showPrintDialog ? 'on' : 'off'}
-            onSelect={v => patch({showPrintDialog: v === 'on'})}
+            onSelect={v => patch({ showPrintDialog: v === 'on' })}
           />
-          <RowChoice
+          <DropdownChoice
             label="Auto cut"
             options={[
-              {id: 'yes', title: 'Auto cut'},
-              {id: 'no', title: 'No cut'},
+              { id: 'yes', title: 'Auto cut' },
+              { id: 'no', title: 'No cut' },
             ]}
             selected={draft.autoCut ? 'yes' : 'no'}
-            onSelect={v => patch({autoCut: v === 'yes'})}
+            onSelect={v => patch({ autoCut: v === 'yes' })}
           />
           {draft.autoCut && (
-            <RowChoice
+            <DropdownChoice
               label="Cut type"
               options={[
-                {id: 'partial', title: 'Partial cut'},
-                {id: 'full', title: 'Full cut'},
+                { id: 'partial', title: 'Partial cut' },
+                { id: 'full', title: 'Full cut' },
               ]}
               selected={draft.cutMode}
-              onSelect={v => patch({cutMode: v as SetupDraft['cutMode']})}
+              onSelect={v => patch({ cutMode: v as SetupDraft['cutMode'] })}
             />
           )}
-          <RowChoice
-            label="Cash drawer"
-            options={[
-              {id: 'yes', title: 'Open drawer'},
-              {id: 'no', title: 'No drawer'},
-            ]}
-            selected={draft.cashDrawer ? 'yes' : 'no'}
-            onSelect={v => patch({cashDrawer: v === 'yes'})}
-          />
+
           <Field
             label="Star identifier (MAC or IP)"
             value={draft.starIdentifier}
-            onChangeText={v => patch({starIdentifier: v, printerIp: draft.printerIp || v})}
+            onChangeText={v => patch({ starIdentifier: v, printerIp: draft.printerIp || v })}
             autoCapitalize="none"
           />
-          <Field label="Printer IP (ESC/POS LAN port 9100)" value={draft.printerIp} onChangeText={v => patch({printerIp: v})} autoCapitalize="none" />
+          <Field label="Printer IP (ESC/POS LAN port 9100)" value={draft.printerIp} onChangeText={v => patch({ printerIp: v })} autoCapitalize="none" />
           <Field
             label="Port (ESC/POS only)"
             value={String(draft.printerPort)}
-            onChangeText={v => patch({printerPort: parseInt(v, 10) || 9100})}
+            onChangeText={v => patch({ printerPort: parseInt(v, 10) || 9100 })}
             keyboardType="numeric"
           />
-          <Field label="MAC / Bluetooth address" value={draft.macAddress} onChangeText={v => patch({macAddress: v})} autoCapitalize="none" />
-          <Field label="Model" value={draft.model} onChangeText={v => patch({model: v})} />
-          <Field label="Printer name" value={draft.printerName} onChangeText={v => patch({printerName: v})} />
+          <Field label="MAC / Bluetooth address" value={draft.macAddress} onChangeText={v => patch({ macAddress: v })} autoCapitalize="none" />
+          <Field label="Model" value={draft.model} onChangeText={v => patch({ model: v })} />
+          <Field label="Printer name" value={draft.printerName} onChangeText={v => patch({ printerName: v })} />
 
-          <RowChoice
+          <DropdownChoice
             label="Printer enabled"
             options={[
-              {id: 'yes', title: 'Enabled'},
-              {id: 'no', title: 'Disabled'},
+              { id: 'yes', title: 'Enabled' },
+              { id: 'no', title: 'Disabled' },
             ]}
             selected={draft.printerEnabled ? 'yes' : 'no'}
-            onSelect={v => patch({printerEnabled: v === 'yes'})}
+            onSelect={v => patch({ printerEnabled: v === 'yes' })}
           />
-          <RowChoice
+          <DropdownChoice
             label="Auto reconnect"
             options={[
-              {id: 'yes', title: 'Reconnect'},
-              {id: 'no', title: 'Manual'},
+              { id: 'yes', title: 'Reconnect' },
+              { id: 'no', title: 'Manual' },
             ]}
             selected={draft.autoReconnect ? 'yes' : 'no'}
-            onSelect={v => patch({autoReconnect: v === 'yes'})}
+            onSelect={v => patch({ autoReconnect: v === 'yes' })}
           />
           <Field
             label="Retry count"
             value={String(draft.retryCount)}
-            onChangeText={v => patch({retryCount: Math.max(0, parseInt(v, 10) || 0)})}
+            onChangeText={v => patch({ retryCount: Math.max(0, parseInt(v, 10) || 0) })}
             keyboardType="numeric"
           />
           {draft.connection === 'USB' && (
@@ -326,46 +298,23 @@ export function SetupScreen({navigation}: Props) {
               <Field
                 label="USB vendor ID"
                 value={String(draft.usbVendorId || '')}
-                onChangeText={v => patch({usbVendorId: parseInt(v, 10) || 0})}
+                onChangeText={v => patch({ usbVendorId: parseInt(v, 10) || 0 })}
                 keyboardType="numeric"
               />
               <Field
                 label="USB product ID"
                 value={String(draft.usbProductId || '')}
-                onChangeText={v => patch({usbProductId: parseInt(v, 10) || 0})}
+                onChangeText={v => patch({ usbProductId: parseInt(v, 10) || 0 })}
                 keyboardType="numeric"
               />
               <Field
                 label="USB device name"
                 value={draft.printerDeviceName}
-                onChangeText={v => patch({printerDeviceName: v})}
+                onChangeText={v => patch({ printerDeviceName: v })}
               />
             </>
           )}
-          {draft.printEngine === 'CLOUDPRNT' && (
-            <Field
-              label="CloudPRNT URL"
-              value={draft.cloudPrntUrl}
-              onChangeText={v => patch({cloudPrntUrl: v})}
-              autoCapitalize="none"
-            />
-          )}
-          {draft.printEngine === 'PASSPRNT' && (
-            <>
-              <Field
-                label="PassPRNT port (optional StarIO portName)"
-                value={draft.passPrntPort}
-                onChangeText={v => patch({passPrntPort: v})}
-                autoCapitalize="none"
-              />
-              <Field
-                label="PassPRNT settings (optional)"
-                value={draft.passPrntSettings}
-                onChangeText={v => patch({passPrntSettings: v})}
-                autoCapitalize="none"
-              />
-            </>
-          )}
+
           <TouchableOpacity style={styles.secondaryBtn} onPress={scanPrinters}>
             <Text style={styles.secondaryBtnText}>
               {usesExistingEscPosStack(draft.printEngine) ? 'Scan ESC/POS printers' : 'Discover Star printers'}
@@ -374,11 +323,10 @@ export function SetupScreen({navigation}: Props) {
         </>
       )}
 
-      {step === 3 && (
+      {step === 2 && (
         <View style={styles.review}>
-          <Text style={styles.reviewLine}>Division: {draft.divisionName}</Text>
+
           <Text style={styles.reviewLine}>URL: {draft.divisionUrl}</Text>
-          <Text style={styles.reviewLine}>Customer: {draft.customerName}</Text>
           <Text style={styles.reviewLine}>
             Printer: {draft.brand} · {draft.printEngine} · {draft.width}
           </Text>
@@ -393,14 +341,13 @@ export function SetupScreen({navigation}: Props) {
           <Text style={styles.reviewLine}>
             Print: {draft.showPrintDialog ? 'Dialog' : 'Auto'} ·{' '}
             {draft.autoCut ? draft.cutMode + ' cut' : 'No cut'}
-            {draft.cashDrawer ? ' · drawer' : ''}
           </Text>
         </View>
       )}
 
       {!!error && <Text style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
-      {busy && <ActivityIndicator color={colors.primary} style={{marginVertical: 12}} />}
+      {busy && <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />}
 
       <View style={styles.actions}>
         {step > 0 && (
@@ -419,13 +366,13 @@ export function SetupScreen({navigation}: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {padding: layout.pad, backgroundColor: colors.card, flexGrow: 1},
-  heading: {fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 8},
-  steps: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16},
-  stepDot: {fontSize: 12, color: colors.muted, backgroundColor: colors.border, padding: 6, borderRadius: 8},
-  stepActive: {color: colors.primary, fontWeight: '700'},
-  field: {marginBottom: 14},
-  label: {fontSize: 14, color: colors.muted, marginBottom: 6},
+  container: { padding: layout.pad, backgroundColor: colors.card, flexGrow: 1 },
+  heading: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 8 },
+  steps: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  stepDot: { fontSize: 12, color: colors.muted, backgroundColor: colors.border, padding: 6, borderRadius: 8 },
+  stepActive: { color: colors.primary, fontWeight: '700' },
+  field: { marginBottom: 14 },
+  label: { fontSize: 14, color: colors.muted, marginBottom: 6 },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -435,7 +382,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  choiceRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -443,17 +390,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  choiceSelected: {borderColor: colors.primary, backgroundColor: '#EFF6FF'},
-  choiceText: {color: colors.text, fontSize: 14},
-  choiceTextSelected: {color: colors.primary, fontWeight: '600'},
-  review: {backgroundColor: '#F8FAFC', padding: 16, borderRadius: layout.radius, gap: 8},
-  reviewLine: {fontSize: 15, color: colors.text},
-  reviewSdk: {fontSize: 14, color: colors.primary, fontWeight: '600'},
-  sdkLine: {fontSize: 14, color: colors.primary, fontWeight: '600', marginBottom: 4},
-  sdkPathLine: {fontSize: 13, color: colors.muted, marginBottom: 12},
-  error: {color: colors.danger, marginTop: 8},
-  status: {color: colors.muted, marginTop: 8},
-  actions: {flexDirection: 'row', gap: 12, marginTop: 20},
+  choiceSelected: { borderColor: colors.primary, backgroundColor: '#EFF6FF' },
+  choiceText: { color: colors.text, fontSize: 14 },
+  choiceTextSelected: { color: colors.primary, fontWeight: '600' },
+  review: { backgroundColor: '#F8FAFC', padding: 16, borderRadius: layout.radius, gap: 8 },
+  reviewLine: { fontSize: 15, color: colors.text },
+  reviewSdk: { fontSize: 14, color: colors.primary, fontWeight: '600' },
+  sdkLine: { fontSize: 14, color: colors.primary, fontWeight: '600', marginBottom: 4 },
+  sdkPathLine: { fontSize: 13, color: colors.muted, marginBottom: 12 },
+  error: { color: colors.danger, marginTop: 8 },
+  status: { color: colors.muted, marginTop: 8 },
+  actions: { flexDirection: 'row', gap: 12, marginTop: 20 },
   primaryBtn: {
     flex: 1,
     backgroundColor: colors.primary,
@@ -461,7 +408,7 @@ const styles = StyleSheet.create({
     borderRadius: layout.radius,
     alignItems: 'center',
   },
-  primaryBtnText: {color: '#FFF', fontWeight: '600', fontSize: 16},
+  primaryBtnText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
   secondaryBtn: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -470,5 +417,5 @@ const styles = StyleSheet.create({
     borderRadius: layout.radius,
     alignItems: 'center',
   },
-  secondaryBtnText: {color: colors.text, fontWeight: '600'},
+  secondaryBtnText: { color: colors.text, fontWeight: '600' },
 });

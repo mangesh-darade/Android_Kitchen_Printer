@@ -1,5 +1,5 @@
-import React from 'react';
-import {View, Text, TextInput, TouchableOpacity, StyleSheet} from 'react-native';
+import React, { useState } from 'react';
+import {View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, FlatList, TouchableWithoutFeedback} from 'react-native';
 import {colors, layout} from '../theme/styles';
 
 export function Field({
@@ -58,6 +58,59 @@ export function RowChoice({
     </View>
   );
 }
+export function DropdownChoice({
+  label,
+  options,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  options: {id: string; title: string}[];
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  const [modalVisible, setModalVisible] = useState(false);
+  const selectedOption = options.find(o => o.id === selected) || options[0];
+
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <TouchableOpacity style={styles.dropdownButton} onPress={() => setModalVisible(true)}>
+        <Text style={styles.dropdownButtonText}>{selectedOption?.title || 'Select...'}</Text>
+        <Text style={styles.dropdownIcon}>▼</Text>
+      </TouchableOpacity>
+
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>{label}</Text>
+                <FlatList
+                  data={options}
+                  keyExtractor={item => item.id}
+                  renderItem={({item}) => (
+                    <TouchableOpacity
+                      style={[styles.modalItem, selected === item.id && styles.modalItemSelected]}
+                      onPress={() => {
+                        onSelect(item.id);
+                        setModalVisible(false);
+                      }}>
+                      <Text style={[styles.modalItemText, selected === item.id && styles.modalItemTextSelected]}>
+                        {item.title}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </View>
+  );
+}
+
 
 export function ToggleRow({
   label,
@@ -108,4 +161,42 @@ const styles = StyleSheet.create({
   },
   line: {fontSize: 15, color: colors.text, marginBottom: 6},
   toggleValue: {fontWeight: '700', color: colors.primary},
+  dropdownButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: layout.radius,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  dropdownButtonText: {fontSize: 16, color: colors.text},
+  dropdownIcon: {fontSize: 12, color: colors.muted},
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: layout.radius,
+    maxHeight: '80%',
+    padding: 16,
+  },
+  modalTitle: {fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: 16},
+  modalItem: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  modalItemSelected: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+  },
+  modalItemText: {fontSize: 16, color: colors.text},
+  modalItemTextSelected: {color: colors.primary, fontWeight: '600'},
 });

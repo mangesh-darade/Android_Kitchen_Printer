@@ -2,7 +2,7 @@ import { CONFIG_SCHEMA_VERSION } from "../app-identity";
 import { emptyConfig, type AppConfig, type PrintEngine, type PrinterBrand } from "./models";
 import { defaultPrintEngine } from "../../printer/enginePolicy";
 
-const ENGINES: PrintEngine[] = ["STAR_IO10", "PASSPRNT", "CLOUDPRNT", "ESC_POS"];
+const ENGINES: PrintEngine[] = ["STAR_IO10", "ESC_POS"];
 
 export function migrateConfig(raw: unknown): AppConfig {
   const base = emptyConfig(CONFIG_SCHEMA_VERSION);
@@ -44,10 +44,6 @@ function normalizePrinter(
     brand,
     printEngine,
     starIdentifier: printer.starIdentifier || printer.macAddress || printer.ip || "",
-    cashDrawer: Boolean(printer.cashDrawer),
-    cloudPrntUrl: printer.cloudPrntUrl || "",
-    passPrntPort: printer.passPrntPort || "",
-    passPrntSettings: printer.passPrntSettings || "",
     profile: { ...base.printer.profile, ...(printer.profile || {}) }
   };
 }
@@ -57,8 +53,7 @@ function pickKnown(json: Record<string, unknown>, base: AppConfig): AppConfig {
     configVersion: CONFIG_SCHEMA_VERSION,
     setupCompleted: Boolean(json.setupCompleted),
     orientation: (json.orientation as AppConfig["orientation"]) || base.orientation,
-    division: { ...base.division, ...(json.division as object) },
-    customer: { ...base.customer, ...(json.customer as object) },
+    division: { url: (json.division as Record<string, string>)?.url || base.division.url },
     printer: {
       ...base.printer,
       ...(json.printer as object),

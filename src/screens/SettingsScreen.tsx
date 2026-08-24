@@ -18,7 +18,7 @@ import {
   resolveActiveSdkTechName,
   VENDOR_SDK_CATALOG,
 } from '../printer/vendorSdkCatalog';
-import {Field, RowChoice, ToggleRow} from '../components/FormControls';
+import {Field, RowChoice, DropdownChoice, ToggleRow} from '../components/FormControls';
 import {colors, layout} from '../theme/styles';
 import {RootStackParamList} from '../App';
 
@@ -54,7 +54,6 @@ export function SettingsScreen({navigation}: Props) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.heading}>Settings</Text>
-      <Text style={styles.line}>Division: {config.division.name}</Text>
       <Text style={styles.line}>URL: {config.division.url}</Text>
       <Text style={styles.line}>
         {config.printer.brand} · {config.printer.printEngine} · {config.printer.width}
@@ -81,13 +80,13 @@ export function SettingsScreen({navigation}: Props) {
           config.printer.connection,
         )}
       </Text>
-      <RowChoice
+      <DropdownChoice
         label="Engine"
         options={PRINT_ENGINES.map(id => ({id, title: id.replace(/_/g, ' ')}))}
         selected={config.printer.printEngine}
         onSelect={v => updateDraft({printEngine: v as PrintEngine})}
       />
-      <RowChoice
+      <DropdownChoice
         label="Paper width"
         options={[
           {id: '3inch', title: '3 inch'},
@@ -96,7 +95,7 @@ export function SettingsScreen({navigation}: Props) {
         selected={config.printer.width}
         onSelect={v => updateDraft({width: v as PrinterWidthClass})}
       />
-      <RowChoice
+      <DropdownChoice
         label="Interface"
         options={[
           {id: 'LAN', title: 'LAN'},
@@ -131,30 +130,7 @@ export function SettingsScreen({navigation}: Props) {
         onChangeText={v => updateDraft({macAddress: v})}
         autoCapitalize="none"
       />
-      {config.printer.printEngine === 'CLOUDPRNT' && (
-        <Field
-          label="CloudPRNT URL"
-          value={config.printer.cloudPrntUrl}
-          onChangeText={v => updateDraft({cloudPrntUrl: v})}
-          autoCapitalize="none"
-        />
-      )}
-      {config.printer.printEngine === 'PASSPRNT' && (
-        <>
-          <Field
-            label="PassPRNT port"
-            value={config.printer.passPrntPort}
-            onChangeText={v => updateDraft({passPrntPort: v})}
-            autoCapitalize="none"
-          />
-          <Field
-            label="PassPRNT settings"
-            value={config.printer.passPrntSettings}
-            onChangeText={v => updateDraft({passPrntSettings: v})}
-            autoCapitalize="none"
-          />
-        </>
-      )}
+
 
       {config.printer.connection === 'USB' && (
         <>
@@ -211,23 +187,16 @@ export function SettingsScreen({navigation}: Props) {
         value={config.printer.autoCut}
         onToggle={v => updateDraft({autoCut: v})}
       />
-      <ToggleRow
-        label="Cash drawer"
-        value={config.printer.cashDrawer}
-        onToggle={v => updateDraft({cashDrawer: v})}
+
+      <DropdownChoice
+        label="Cut type"
+        options={[
+          {id: 'partial', title: 'Partial cut'},
+          {id: 'full', title: 'Full cut'},
+        ]}
+        selected={config.printer.cutMode}
+        onSelect={v => updateDraft({cutMode: v as 'partial' | 'full'})}
       />
-      <View style={styles.row}>
-        <ChoiceBtn
-          title="Partial cut"
-          selected={config.printer.cutMode === 'partial'}
-          onPress={() => updateDraft({cutMode: 'partial'})}
-        />
-        <ChoiceBtn
-          title="Full cut"
-          selected={config.printer.cutMode === 'full'}
-          onPress={() => updateDraft({cutMode: 'full'})}
-        />
-      </View>
 
       <TouchableOpacity
         style={styles.primaryBtn}
@@ -280,23 +249,7 @@ export function SettingsScreen({navigation}: Props) {
   );
 }
 
-function ChoiceBtn({
-  title,
-  selected,
-  onPress,
-}: {
-  title: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={[styles.choiceBtn, selected && styles.choiceBtnSelected]}
-      onPress={onPress}>
-      <Text style={[styles.choiceBtnText, selected && styles.choiceBtnTextSelected]}>{title}</Text>
-    </TouchableOpacity>
-  );
-}
+
 
 const styles = StyleSheet.create({
   container: {padding: layout.pad, backgroundColor: colors.card, flexGrow: 1},
@@ -308,18 +261,7 @@ const styles = StyleSheet.create({
   sdkIntegrated: {color: '#166534'},
   sdkFallback: {color: '#B45309'},
   catalogLine: {fontSize: 12, color: colors.muted, marginBottom: 4},
-  row: {flexDirection: 'row', gap: 8, marginVertical: 8},
-  choiceBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: layout.radius,
-    padding: 12,
-    alignItems: 'center',
-  },
-  choiceBtnSelected: {borderColor: colors.primary, backgroundColor: '#EFF6FF'},
-  choiceBtnText: {color: colors.text},
-  choiceBtnTextSelected: {color: colors.primary, fontWeight: '600'},
+
   primaryBtn: {
     marginTop: 20,
     backgroundColor: colors.primary,

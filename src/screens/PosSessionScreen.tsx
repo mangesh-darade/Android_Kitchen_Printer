@@ -76,7 +76,7 @@ export function PosSessionScreen({navigation}: Props) {
       <View style={styles.toolbar}>
         <View style={styles.toolbarText}>
           <Text style={styles.title} numberOfLines={1}>
-            {config.division.name || 'POS Session'}
+            POS Session
           </Text>
           <Text style={styles.subtitle} numberOfLines={1}>
             {config.printer.name || config.printer.ip || 'No printer'} ·{' '}

@@ -75,9 +75,7 @@ export const VENDOR_SDK_CATALOG: VendorSdkEntry[] = [
 ];
 
 export const STAR_ENGINE_SDK_NAMES: Record<Exclude<PrintEngine, 'ESC_POS'>, string> = {
-  STAR_IO10: 'StarIO10 / StarXpand SDK (react-native-star-io10 1.13.0)',
-  PASSPRNT: 'Star PassPRNT URL Scheme (starpassprnt://)',
-  CLOUDPRNT: 'Star CloudPRNT HTTP',
+  STAR_IO10: 'StarXpand SDK',
 };
 
 export function catalogEntryForBrand(brand: PrinterBrand): VendorSdkEntry {
@@ -88,7 +86,7 @@ export function isSdkBundled(supply: VendorSdkSupply): boolean {
   return supply === 'bundled' || supply === 'maven';
 }
 
-export type SdkPrintPath = 'vendor_sdk' | 'escpos_fallback' | 'star_js' | 'passprnt' | 'cloudprnt';
+export type SdkPrintPath = 'vendor_sdk' | 'escpos_fallback' | 'star_js';
 
 export function resolveSdkPrintPath(
   brand: PrinterBrand,
@@ -96,8 +94,6 @@ export function resolveSdkPrintPath(
   connection: ConnectionType,
 ): SdkPrintPath {
   if (printEngine === 'STAR_IO10') return 'star_js';
-  if (printEngine === 'PASSPRNT') return 'passprnt';
-  if (printEngine === 'CLOUDPRNT') return 'cloudprnt';
   if (brand === 'EPSON' || brand === 'XPRINTER' || brand === 'GPRINTER') return 'vendor_sdk';
   if (brand === 'RONGTA') return 'escpos_fallback';
   return 'escpos_fallback';
