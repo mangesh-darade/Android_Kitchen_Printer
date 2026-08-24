@@ -11,8 +11,6 @@ export type PrinterBrand =
 export type PrintEngine = "STAR_IO10" | "PASSPRNT" | "CLOUDPRNT" | "ESC_POS";
 /** StarIO10 InterfaceType names — do not invent UsbVendor (not in StarIO10 1.13). */
 export type StarInterface = "Lan" | "Bluetooth" | "BluetoothLE" | "Usb";
-export type PrinterRole = "RECEIPT" | "KITCHEN" | "BAR" | "LABEL";
-export const PRINTER_ROLES: PrinterRole[] = ["RECEIPT", "KITCHEN", "BAR", "LABEL"];
 export type OrientationMode = "portrait" | "landscape" | "auto";
 
 export interface PrinterProfile {
@@ -44,7 +42,6 @@ export interface CustomerConfig {
 export interface PrinterConfig {
   id: string;
   name: string;
-  role: PrinterRole;
   enabled: boolean;
   width: PrinterWidthClass;
   brand: PrinterBrand;
@@ -187,7 +184,6 @@ export function emptyConfig(configVersion = 1): AppConfig {
     printer: {
       id: "primary_receipt",
       name: "Receipt Printer",
-      role: "RECEIPT",
       enabled: true,
       width: "3inch",
       brand: "GENERIC_ESC_POS",

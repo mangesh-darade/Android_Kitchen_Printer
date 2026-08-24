@@ -26,7 +26,6 @@ export function printerSettingsForBridge(printer: PrinterConfig) {
     passPrntPort: printer.passPrntPort,
     passPrntSettings: printer.passPrntSettings,
     name: printer.name,
-    role: printer.role,
     enabled: printer.enabled,
     deviceName: printer.deviceName,
     usbVendorId: printer.usbVendorId,

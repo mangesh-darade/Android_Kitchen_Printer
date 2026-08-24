@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {validatePosUrl, PRINTER_ROLES, type PrintEngine, type PrinterBrand, type PrinterRole} from '../core/config/models';
+import {validatePosUrl, type PrintEngine, type PrinterBrand} from '../core/config/models';
 import {
   buildConfigFromDraft,
   checkUrlReachable,
@@ -296,12 +296,7 @@ export function SetupScreen({navigation}: Props) {
           <Field label="MAC / Bluetooth address" value={draft.macAddress} onChangeText={v => patch({macAddress: v})} autoCapitalize="none" />
           <Field label="Model" value={draft.model} onChangeText={v => patch({model: v})} />
           <Field label="Printer name" value={draft.printerName} onChangeText={v => patch({printerName: v})} />
-          <RowChoice
-            label="Printer role"
-            options={PRINTER_ROLES.map(id => ({id, title: id}))}
-            selected={draft.printerRole}
-            onSelect={v => patch({printerRole: v as PrinterRole})}
-          />
+
           <RowChoice
             label="Printer enabled"
             options={[

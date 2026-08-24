@@ -11,7 +11,7 @@ import {
   testPrinter,
   type SetupDraft,
 } from '../native/posConnect';
-import {AppConfig, PRINTER_ROLES, type ConnectionType, type PrintEngine, type PrinterRole, type PrinterWidthClass} from '../core/config/models';
+import {AppConfig, type ConnectionType, type PrintEngine, type PrinterWidthClass} from '../core/config/models';
 import {PRINT_ENGINES} from '../printer/enginePolicy';
 import {
   printerSdkSettingsFields,
@@ -182,12 +182,7 @@ export function SettingsScreen({navigation}: Props) {
         value={config.printer.name}
         onChangeText={v => updateDraft({printerName: v})}
       />
-      <RowChoice
-        label="Printer role"
-        options={PRINTER_ROLES.map(id => ({id, title: id}))}
-        selected={config.printer.role}
-        onSelect={v => updateDraft({printerRole: v as PrinterRole})}
-      />
+
       <ToggleRow
         label="Printer enabled"
         value={config.printer.enabled}

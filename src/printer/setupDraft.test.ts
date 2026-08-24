@@ -30,7 +30,6 @@ describe('setup draft → Star engine', () => {
   it('maps USB ids, reconnect, and printer identity from the draft', () => {
     const draft = emptyDraft();
     draft.printerName = 'Kitchen Star';
-    draft.printerRole = 'KITCHEN';
     draft.printerEnabled = true;
     draft.printerDeviceName = 'TSP143';
     draft.usbVendorId = 1305;
@@ -40,7 +39,6 @@ describe('setup draft → Star engine', () => {
     draft.connection = 'USB';
     const config = buildConfigFromDraft(draft);
     expect(config.printer.name).toBe('Kitchen Star');
-    expect(config.printer.role).toBe('KITCHEN');
     expect(config.printer.deviceName).toBe('TSP143');
     expect(config.printer.usbVendorId).toBe(1305);
     expect(config.printer.usbProductId).toBe(1);

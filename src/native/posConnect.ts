@@ -9,7 +9,6 @@ import {
   type PluginResult,
   type PrintEngine,
   type PrinterBrand,
-  type PrinterRole,
   type PrinterStatus,
 } from '../core/config/models';
 import {migrateConfig} from '../core/config/migration';
@@ -250,7 +249,6 @@ export function buildConfigFromDraft(draft: SetupDraft): AppConfig {
       passPrntPort: draft.passPrntPort.trim(),
       passPrntSettings: draft.passPrntSettings.trim(),
       name: draft.printerName.trim() || 'Receipt Printer',
-      role: draft.printerRole,
       enabled: draft.printerEnabled,
       deviceName: draft.printerDeviceName.trim(),
       usbVendorId: draft.usbVendorId,
@@ -291,7 +289,6 @@ export type SetupDraft = {
   passPrntPort: string;
   passPrntSettings: string;
   printerName: string;
-  printerRole: PrinterRole;
   printerEnabled: boolean;
   printerDeviceName: string;
   usbVendorId: number;
@@ -326,7 +323,6 @@ export function emptyDraft(): SetupDraft {
     passPrntPort: '',
     passPrntSettings: '',
     printerName: 'Receipt Printer',
-    printerRole: 'RECEIPT',
     printerEnabled: true,
     printerDeviceName: '',
     usbVendorId: 0,
@@ -362,7 +358,6 @@ export function draftFromConfig(config: AppConfig): SetupDraft {
     passPrntPort: config.printer.passPrntPort,
     passPrntSettings: config.printer.passPrntSettings,
     printerName: config.printer.name,
-    printerRole: config.printer.role,
     printerEnabled: config.printer.enabled,
     printerDeviceName: config.printer.deviceName,
     usbVendorId: config.printer.usbVendorId,
