@@ -162,16 +162,19 @@ class PrinterManager private constructor(private val context: Context) {
         return queueManager.enqueueRaw(bytes, title) { activeAdapter }
     }
 
+    private fun getOrInitAdapter(): PrinterAdapter? {
+        if (activeAdapter == null) {
+            val config = configRepo.configState.value.printer
+            activeAdapter = PrinterFactory.createPrinter(context, config)
+        }
+        return activeAdapter
+    }
+
     suspend fun printReceiptDirect(receipt: ReceiptData): PrinterResult = withContext(Dispatchers.IO) {
         if (!configRepo.configState.value.printer.enabled) {
             return@withContext printerDisabledResult()
         }
-        val adapter = activeAdapter ?: run {
-            val config = configRepo.configState.value.printer
-            val newAdapter = PrinterFactory.createPrinter(context, config)
-            activeAdapter = newAdapter
-            newAdapter
-        }
+        val adapter = getOrInitAdapter() ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
         adapter.printReceipt(receipt)
     }
 
@@ -179,15 +182,22 @@ class PrinterManager private constructor(private val context: Context) {
         if (!configRepo.configState.value.printer.enabled) {
             return@withContext printerDisabledResult()
         }
-        val adapter = activeAdapter ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
-        adapter.printText(text, isBold)
+        val adapter = getOrInitAdapter() ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
+        if (!adapter.isConnected()) {
+            adapter.connect()
+        }
+        val result = adapter.printText(text, isBold)
+        if (result.success && configRepo.configState.value.printer.autoCut) {
+            adapter.cutPaper(partial = configRepo.configState.value.printer.cutMode != "full")
+        }
+        result
     }
 
     suspend fun openCashDrawer(): PrinterResult = withContext(Dispatchers.IO) {
         if (!configRepo.configState.value.printer.enabled) {
             return@withContext printerDisabledResult()
         }
-        val adapter = activeAdapter ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
+        val adapter = getOrInitAdapter() ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
         adapter.openCashDrawer()
     }
 
@@ -195,7 +205,7 @@ class PrinterManager private constructor(private val context: Context) {
         if (!configRepo.configState.value.printer.enabled) {
             return@withContext printerDisabledResult()
         }
-        val adapter = activeAdapter ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
+        val adapter = getOrInitAdapter() ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
         val printer = configRepo.configState.value.printer
         adapter.cutPaper(partial = printer.cutMode != "full")
     }
