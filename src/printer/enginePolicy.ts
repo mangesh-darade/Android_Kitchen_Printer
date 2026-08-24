@@ -17,14 +17,11 @@ export const PRINTER_BRANDS: PrinterBrand[] = [
   'GENERIC_ESC_POS',
   'STAR',
   'EPSON',
-  'SUNMI',
   'XPRINTER',
   'RONGTA',
   'GPRINTER',
-  'CUSTOM',
 ];
 
-/** Brand STAR defaults to official StarIO10. All other brands keep existing ESC/POS LAN/BT/USB. */
 export function defaultPrintEngine(brand: PrinterBrand): PrintEngine {
   return brand === 'STAR' ? 'STAR_IO10' : 'ESC_POS';
 }

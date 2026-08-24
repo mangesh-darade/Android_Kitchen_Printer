@@ -5,12 +5,9 @@ export type PrinterBrand =
   | "GENERIC_ESC_POS"
   | "EPSON"
   | "STAR"
-  | "SUNMI"
   | "XPRINTER"
   | "RONGTA"
-  | "GPRINTER"
-  | "CUSTOM";
-/** Star page engines. STAR_IO10 is StarXpand (Android+iOS SDK via RN). ESC_POS reuses existing LAN/BT/USB. */
+  | "GPRINTER";
 export type PrintEngine = "STAR_IO10" | "PASSPRNT" | "CLOUDPRNT" | "ESC_POS";
 /** StarIO10 InterfaceType names — do not invent UsbVendor (not in StarIO10 1.13). */
 export type StarInterface = "Lan" | "Bluetooth" | "BluetoothLE" | "Usb";

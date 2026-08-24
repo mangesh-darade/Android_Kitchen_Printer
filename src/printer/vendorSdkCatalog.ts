@@ -46,16 +46,6 @@ export const VENDOR_SDK_CATALOG: VendorSdkEntry[] = [
     notes: 'STAR_IO10 engine. ESC/POS mode uses generic engine without Star SDK.',
   },
   {
-    brand: 'SUNMI',
-    sdkTechName: 'SUNMI PrinterLibrary',
-    officialSdkName: 'com.sunmi:printerlibrary (InnerPrinter)',
-    version: '1.0.24',
-    supply: 'maven',
-    downloadUrl: 'https://central.sonatype.com/artifact/com.sunmi/printerlibrary',
-    mavenCoordinate: 'com.sunmi:printerlibrary:1.0.24',
-    notes: 'Built-in SUNMI devices use PrinterLibrary. External LAN/BT uses ESC/POS fallback.',
-  },
-  {
     brand: 'XPRINTER',
     sdkTechName: 'XPrinter Android SDK',
     officialSdkName: 'printer-lib AAR (net.posprinter)',
@@ -81,15 +71,6 @@ export const VENDOR_SDK_CATALOG: VendorSdkEntry[] = [
     supply: 'bundled',
     downloadUrl: 'http://gprinter.net/kaifa01/',
     notes: 'Bundled gprintersdk-2.0.aar in android/app/libs/gprinter/.',
-  },
-  {
-    brand: 'CUSTOM',
-    sdkTechName: 'Custom vendor SDK (not supplied)',
-    officialSdkName: 'Place vendor AAR in android/app/libs/custom/',
-    version: '—',
-    supply: 'manual_required',
-    downloadUrl: '',
-    notes: 'Uses ESC/POS fallback until a vendor AAR is added.',
   },
 ];
 
@@ -118,7 +99,6 @@ export function resolveSdkPrintPath(
   if (printEngine === 'PASSPRNT') return 'passprnt';
   if (printEngine === 'CLOUDPRNT') return 'cloudprnt';
   if (brand === 'EPSON' || brand === 'XPRINTER' || brand === 'GPRINTER') return 'vendor_sdk';
-  if (brand === 'SUNMI' && connection === 'BUILTIN') return 'vendor_sdk';
   if (brand === 'RONGTA') return 'escpos_fallback';
   return 'escpos_fallback';
 }
@@ -138,9 +118,7 @@ export function resolveActiveSdkTechName(
 
   const entry = catalogEntryForBrand(brand);
 
-  if (brand === 'SUNMI' && connection === 'BUILTIN') {
-    return `${entry.sdkTechName} ${entry.version}`;
-  }
+
 
   if (isSdkBundled(entry.supply)) {
     return `${entry.sdkTechName} ${entry.version}`;
@@ -162,13 +140,10 @@ export function resolveSdkIntegrationStatus(
   if (path === 'vendor_sdk' || path === 'star_js' || path === 'passprnt' || path === 'cloudprnt') {
     return 'integrated';
   }
-  if (brand === 'RONGTA' || brand === 'CUSTOM') {
+  if (brand === 'RONGTA') {
     return 'fallback';
   }
   const entry = catalogEntryForBrand(brand);
-  if (isSdkBundled(entry.supply) && connection === 'BUILTIN' && brand === 'SUNMI') {
-    return 'integrated';
-  }
   return entry.supply === 'escpos_fallback' ? 'fallback' : 'partial';
 }
 
