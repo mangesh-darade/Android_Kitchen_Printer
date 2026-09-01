@@ -35,14 +35,29 @@ function AppNavigator() {
   if (!initialRoute) {
     return (
       <View style={{flex: 1, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center'}}>
-        <ActivityIndicator size="large" color="#3B82F6" />
-        <Text style={{color: '#FFFFFF', fontSize: 28, fontWeight: '700', marginTop: 16}}>{APP_NAME}</Text>
+        <View
+          style={{
+            width: 76,
+            height: 76,
+            borderRadius: 22,
+            backgroundColor: '#1E293B',
+            borderWidth: 2,
+            borderColor: '#3B82F6',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 16,
+            elevation: 6,
+          }}>
+          <Text style={{fontSize: 36}}>⚡</Text>
+        </View>
+        <ActivityIndicator size="small" color="#3B82F6" style={{marginBottom: 12}} />
+        <Text style={{color: '#FFFFFF', fontSize: 26, fontWeight: '700'}}>{APP_NAME}</Text>
         <TouchableOpacity
           activeOpacity={0.7}
           style={{position: 'absolute', bottom: 32}}
           onPress={() => Linking.openURL(ELINTOM_URL)}>
           <Text style={{color: '#94A3B8', fontSize: 13}}>
-            Powered by <Text style={{fontWeight: '700', textDecorationLine: 'underline', color: '#60A5FA'}}>ElintOm</Text>
+            Powered by <Text style={{fontWeight: '700', textDecorationLine: 'underline', color: '#60A5FA'}}>ElintOm</Text> ↗
           </Text>
         </TouchableOpacity>
       </View>
