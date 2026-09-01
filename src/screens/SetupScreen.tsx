@@ -23,7 +23,7 @@ import {
 } from '../native/posConnect';
 import { PRINT_ENGINES, PRINTER_BRANDS, usesExistingEscPosStack } from '../printer/enginePolicy';
 import { resolveActiveSdkTechName, resolveSdkPrintPath } from '../printer/vendorSdkCatalog';
-import { Field, RowChoice, DropdownChoice } from '../components/FormControls';
+import { Field, DropdownChoice } from '../components/FormControls';
 import { colors, layout } from '../theme/styles';
 import { RootStackParamList } from '../App';
 
@@ -112,10 +112,7 @@ export function SetupScreen({ navigation }: Props) {
           setError('Bluetooth MAC address is required for ESC/POS.');
           return;
         }
-        if (draft.connection === 'USB' && (!draft.usbVendorId || !draft.usbProductId)) {
-          setError('USB vendor ID and product ID are required for ESC/POS.');
-          return;
-        }
+        // For USB, if VID/PID are not manually set, native UsbTransport auto-detects any attached USB printer.
       }
       setStep(2);
       return;
@@ -128,7 +125,7 @@ export function SetupScreen({ navigation }: Props) {
   async function scanPrinters() {
     setBusy(true);
     setStatus(
-      usesExistingEscPosStack(draft.printEngine) ? 'Scanning ESC/POS LAN...' : 'Scanning Star printers...',
+      usesExistingEscPosStack(draft.printEngine) ? 'Scanning ESC/POS printers...' : 'Scanning Star printers...',
     );
     try {
       const probe = buildConfigFromDraft(draft);
@@ -138,13 +135,20 @@ export function SetupScreen({ navigation }: Props) {
         const id = first.identifier.includes(':') && first.connectionType === 'LAN'
           ? first.identifier.split(':')[0]
           : first.identifier;
+
+        const vidMatch = first.identifier.match(/VID:(\d+)/i);
+        const pidMatch = first.identifier.match(/PID:(\d+)/i);
+
         patch({
           printerIp: first.connectionType === 'LAN' ? id : draft.printerIp,
           macAddress: first.identifier,
           starIdentifier: first.identifier,
           model: first.model || draft.model,
+          usbVendorId: vidMatch ? parseInt(vidMatch[1], 10) : draft.usbVendorId,
+          usbProductId: pidMatch ? parseInt(pidMatch[1], 10) : draft.usbProductId,
+          printerDeviceName: first.name || draft.printerDeviceName,
         });
-        setStatus(`Found: ${first.name}`);
+        setStatus(`Found: ${first.name} (${first.identifier})`);
       } else {
         setStatus('No printers found.');
       }
