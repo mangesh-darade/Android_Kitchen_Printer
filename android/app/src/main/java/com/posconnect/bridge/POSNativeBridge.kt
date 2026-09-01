@@ -95,6 +95,7 @@ class POSNativeBridge(
 
     @JavascriptInterface
     fun getDeviceInfo(): String {
+        if (!validateOrigin()) return unauthorizedResponse()
         DiagnosticLogger.i(LogCategory.WEBVIEW, "POSNativeBridge", "JS invoked getDeviceInfo()")
         val info = JSONObject().apply {
             put("platform", "android")

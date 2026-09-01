@@ -40,7 +40,9 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
             javaScriptCanOpenWindowsAutomatically = true
             setSupportMultipleWindows(true)
             cacheMode = WebSettings.LOAD_DEFAULT
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            allowFileAccess = false
+            allowContentAccess = false
             useWideViewPort = true
             loadWithOverviewMode = true
             builtInZoomControls = false
@@ -145,7 +147,19 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
             }
 
             override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-                handler?.proceed()
+                val host = try { java.net.URI(error?.url ?: "").host ?: "" } catch (_: Exception) { "" }
+                val isPrivateHost = host.startsWith("192.168.") ||
+                                    host.startsWith("10.") ||
+                                    host.startsWith("172.") ||
+                                    host == "localhost" || host == "127.0.0.1"
+                if (isPrivateHost) {
+                    // Permit self-signed SSL on private LAN for local POS servers
+                    handler?.proceed()
+                } else {
+                    // Block untrusted SSL certificates on public internet domains to protect against MitM attacks
+                    handler?.cancel()
+                    emitEvent("onError", "Security Alert: Untrusted SSL certificate for $host")
+                }
             }
         }
     }
