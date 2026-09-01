@@ -55,6 +55,13 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
                 emitEvent("onLoadProgress", newProgress)
             }
 
+            override fun onReceivedTitle(view: WebView?, title: String?) {
+                super.onReceivedTitle(view, title)
+                if (!title.isNullOrBlank() && !title.startsWith("http://") && !title.startsWith("https://")) {
+                    emitEvent("onTitleReceived", title.trim())
+                }
+            }
+
             override fun onCreateWindow(
                 view: WebView?,
                 isDialog: Boolean,

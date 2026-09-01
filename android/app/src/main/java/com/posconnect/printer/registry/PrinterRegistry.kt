@@ -106,8 +106,13 @@ object PrinterFactory {
 
     fun createPrinter(context: Context, config: PrinterConfig): PrinterAdapter {
         val profile = PrinterProfile.forWidth(config.width)
-        return VendorAdapterFactory.createWithFallback(context, config, profile) {
+        val adapter = VendorAdapterFactory.createWithFallback(context, config, profile) {
             createTransport(context, config)
         }
+        if (adapter is GenericEscPosAdapter) {
+            adapter.feedLinesTop = config.feedLinesTop
+            adapter.feedLinesBottom = config.feedLinesBottom
+        }
+        return adapter
     }
 }

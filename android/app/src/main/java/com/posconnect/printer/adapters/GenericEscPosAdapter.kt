@@ -18,7 +18,9 @@ import org.json.JSONObject
 open class GenericEscPosAdapter(
     override val transport: PrinterTransport,
     override val profile: PrinterProfile,
-    override val brand: PrinterBrand = PrinterBrand.GENERIC_ESC_POS
+    override val brand: PrinterBrand = PrinterBrand.GENERIC_ESC_POS,
+    var feedLinesTop: Int = 0,
+    var feedLinesBottom: Int = 2
 ) : PrinterAdapter {
 
     override suspend fun initialize(): PrinterResult {
@@ -41,16 +43,25 @@ open class GenericEscPosAdapter(
     }
 
     override suspend fun printText(text: String, isBold: Boolean, textSizeSp: Float): PrinterResult {
-        val formattedText = KotTextFormatter.format(text, profile.charactersPerLine)
-        return if (TextRasterizer.containsComplexUnicode(text)) {
-            val widthPx = if (profile.widthMm >= 100) 832 else 576
-            val bitmap = TextRasterizer.rasterizeText(text, widthPx = widthPx, textSizeSp = textSizeSp, isBold = isBold)
-            val bytes = EscPosCommandBuilder().initialize().setAlignment(EscPosCommandBuilder.Alignment.CENTER).printBitmap(bitmap).lineFeed(1).build()
-            transport.send(bytes)
-        } else {
-            val bytes = EscPosCommandBuilder().initialize().setBold(isBold).textLine(formattedText).lineFeed(1).build()
-            transport.send(bytes)
+        val cleanText = KotTextFormatter.format(text, profile.charactersPerLine).trim()
+        val builder = EscPosCommandBuilder().initialize()
+        if (feedLinesTop > 0) {
+            builder.lineFeed(feedLinesTop)
         }
+
+        if (TextRasterizer.containsComplexUnicode(cleanText)) {
+            val widthPx = if (profile.widthMm >= 100) 832 else 576
+            val bitmap = TextRasterizer.rasterizeText(cleanText, widthPx = widthPx, textSizeSp = textSizeSp, isBold = isBold)
+            builder.printBitmap(bitmap)
+        } else {
+            builder.setBold(isBold).textLine(cleanText)
+        }
+
+        if (feedLinesBottom > 0) {
+            builder.lineFeed(feedLinesBottom)
+        }
+        val bytes = builder.build()
+        return transport.send(bytes)
     }
 
     override suspend fun printImage(bitmap: Bitmap): PrinterResult {
@@ -69,7 +80,7 @@ open class GenericEscPosAdapter(
     }
 
     override suspend fun cutPaper(partial: Boolean): PrinterResult {
-        val bytes = EscPosCommandBuilder().cut(partial).build()
+        val bytes = EscPosCommandBuilder().cut(partial, feedLines = 0).build()
         return transport.send(bytes)
     }
 

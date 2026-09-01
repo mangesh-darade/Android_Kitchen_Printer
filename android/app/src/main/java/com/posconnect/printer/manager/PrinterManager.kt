@@ -214,6 +214,7 @@ class PrinterManager private constructor(private val context: Context) {
                     try {
                         adapter.cutPaper(partial = config.cutMode != "full")
                         lastCutTimeMs = System.currentTimeMillis()
+                        com.posconnect.bridge.POSNativeBridge.markAutoCutDone()
                     } catch (_: Exception) {}
                 }
                 // Audible chime on device + hardware beep on printer

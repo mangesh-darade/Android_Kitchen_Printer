@@ -340,10 +340,24 @@ class POSNativeBridge(
         return res.toJson().toString()
     }
 
+    companion object {
+        @Volatile
+        var lastAutoCutTimestamp: Long = 0L
+
+        fun markAutoCutDone() {
+            lastAutoCutTimestamp = System.currentTimeMillis()
+        }
+    }
+
     @JavascriptInterface
     fun cutPaper(): String {
         if (!validateOrigin()) return unauthorizedResponse()
         ensurePrinterEnabled()?.let { return it }
+        val now = System.currentTimeMillis()
+        if (now - lastAutoCutTimestamp < 3500) {
+            DiagnosticLogger.i(LogCategory.WEBVIEW, "POSNativeBridge", "cutPaper() skipped duplicate cut from JS (already cut in printText)")
+            return PrinterResult.success("Cut already performed").toJson().toString()
+        }
         val printer = configRepo.configState.value.printer
         if (StarPrintBridge.cutIncludedInPrintJob(printer)) {
             return PrinterResult.success("Cut already included in ${printer.printEngine.name} print job").toJson().toString()

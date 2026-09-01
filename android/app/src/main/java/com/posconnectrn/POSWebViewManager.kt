@@ -24,5 +24,6 @@ class POSWebViewManager : SimpleViewManager<POSWebView>() {
             .put("onLoadProgress", MapBuilder.of("registrationName", "onLoadProgress"))
             .put("onLoadEnd", MapBuilder.of("registrationName", "onLoadEnd"))
             .put("onError", MapBuilder.of("registrationName", "onError"))
+            .put("onTitleReceived", MapBuilder.of("registrationName", "onTitleReceived"))
             .build()
 }

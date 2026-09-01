@@ -165,7 +165,9 @@ data class PrinterConfig(
     val cashDrawer: Boolean = false,
     val cloudPrntUrl: String = "",
     val passPrntPort: String = "",
-    val passPrntSettings: String = ""
+    val passPrntSettings: String = "",
+    val feedLinesTop: Int = 0,
+    val feedLinesBottom: Int = 2
 ) {
     fun usesEscPosEngine(): Boolean = printEngine == PrintEngine.ESC_POS
 
@@ -200,6 +202,8 @@ data class PrinterConfig(
         put("charactersPerLine", width.defaultCpl)
         put("widthMm", width.paperWidthMm)
         put("printableWidthMm", width.printableWidthMm)
+        put("feedLinesTop", feedLinesTop)
+        put("feedLinesBottom", feedLinesBottom)
     }
 
     companion object {
@@ -238,7 +242,9 @@ data class PrinterConfig(
                 cashDrawer = json.optBoolean("cashDrawer", false),
                 cloudPrntUrl = json.optString("cloudPrntUrl", ""),
                 passPrntPort = json.optString("passPrntPort", ""),
-                passPrntSettings = json.optString("passPrntSettings", "")
+                passPrntSettings = json.optString("passPrntSettings", ""),
+                feedLinesTop = json.optInt("feedLinesTop", 0),
+                feedLinesBottom = json.optInt("feedLinesBottom", 2)
             )
         }
     }

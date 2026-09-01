@@ -63,8 +63,9 @@ object TextRasterizer {
         isBold: Boolean = false,
         alignment: Layout.Alignment = Layout.Alignment.ALIGN_NORMAL
     ): Bitmap {
-        val lines = text.split(Regex("\r?\n"))
-        if (lines.size <= 1 && text.length < 60) {
+        val cleanText = text.trim()
+        val lines = cleanText.split(Regex("\r?\n"))
+        if (lines.size <= 1 && cleanText.length < 60) {
             // Single short line: render centered or aligned
             val textPaint = TextPaint().apply {
                 color = Color.BLACK
@@ -76,7 +77,7 @@ object TextRasterizer {
             val bitmap = Bitmap.createBitmap(widthPx, height, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             canvas.drawColor(Color.WHITE)
-            drawCenteredText(canvas, text.trim(), textSizeSp + 6f, textPaint, widthPx)
+            drawCenteredText(canvas, cleanText, textSizeSp + 6f, textPaint, widthPx)
             return bitmap
         }
 

@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert} from 'react-native';
+import {View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Linking} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {
   buildConfigFromDraft,
@@ -12,6 +12,7 @@ import {
   type SetupDraft,
 } from '../native/posConnect';
 import {AppConfig, type ConnectionType, type PrintEngine, type PrinterWidthClass} from '../core/config/models';
+import {POWERED_BY, ELINTOM_URL} from '../core/app-identity';
 import {PRINT_ENGINES} from '../printer/enginePolicy';
 import {
   printerSdkSettingsFields,
@@ -198,6 +199,30 @@ export function SettingsScreen({navigation}: Props) {
         onSelect={v => updateDraft({cutMode: v as 'partial' | 'full'})}
       />
 
+      <DropdownChoice
+        label="White space above (Top margin)"
+        options={[
+          {id: '0', title: '0 lines (No extra top space)'},
+          {id: '1', title: '1 line'},
+          {id: '2', title: '2 lines'},
+          {id: '3', title: '3 lines'},
+        ]}
+        selected={String(config.printer.feedLinesTop ?? 0)}
+        onSelect={v => updateDraft({feedLinesTop: parseInt(v, 10) || 0})}
+      />
+
+      <DropdownChoice
+        label="White space below (Bottom margin before cut)"
+        options={[
+          {id: '1', title: '1 line (Compact cut)'},
+          {id: '2', title: '2 lines (Standard)'},
+          {id: '3', title: '3 lines'},
+          {id: '4', title: '4 lines'},
+        ]}
+        selected={String(config.printer.feedLinesBottom ?? 2)}
+        onSelect={v => updateDraft({feedLinesBottom: parseInt(v, 10) || 2})}
+      />
+
       <TouchableOpacity
         style={styles.primaryBtn}
         onPress={async () => {
@@ -245,6 +270,14 @@ export function SettingsScreen({navigation}: Props) {
       <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.goBack()}>
         <Text style={styles.linkBtnText}>Back to POS</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => Linking.openURL(ELINTOM_URL)}>
+        <Text style={styles.poweredBy}>
+          Powered by <Text style={styles.brandLink}>ElintOm</Text>
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -252,8 +285,10 @@ export function SettingsScreen({navigation}: Props) {
 
 
 const styles = StyleSheet.create({
-  container: {padding: layout.pad, backgroundColor: colors.card, flexGrow: 1},
+  container: {padding: layout.pad, backgroundColor: colors.card, flexGrow: 1, paddingBottom: 24},
   heading: {fontSize: 24, fontWeight: '700', marginBottom: 12, color: colors.text},
+  poweredBy: {textAlign: 'center', color: colors.muted, fontSize: 13, marginTop: 24, fontWeight: '500'},
+  brandLink: {fontWeight: '700', textDecorationLine: 'underline', color: colors.primary},
   section: {marginTop: 20, marginBottom: 8, fontSize: 16, fontWeight: '600', color: colors.text},
   line: {fontSize: 15, color: colors.text, marginBottom: 6},
   sdkLine: {fontSize: 14, color: colors.primary, marginBottom: 4, fontWeight: '600'},

@@ -7,8 +7,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { POWERED_BY, ELINTOM_URL } from '../core/app-identity';
 import { validatePosUrl, type PrintEngine, type PrinterBrand } from '../core/config/models';
 import {
   buildConfigFromDraft,
@@ -159,7 +161,7 @@ export function SetupScreen({ navigation }: Props) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>Setup — {STEPS[step]}</Text>
+      <Text style={styles.heading}>ElintOm Setup — {STEPS[step]}</Text>
       <View style={styles.steps}>
         {STEPS.map((label, i) => (
           <Text key={label} style={[styles.stepDot, i <= step && styles.stepActive]}>
@@ -255,6 +257,30 @@ export function SetupScreen({ navigation }: Props) {
               onSelect={v => patch({ cutMode: v as SetupDraft['cutMode'] })}
             />
           )}
+
+          <DropdownChoice
+            label="White space above (Top margin)"
+            options={[
+              { id: '0', title: '0 lines (No extra top space)' },
+              { id: '1', title: '1 line' },
+              { id: '2', title: '2 lines' },
+              { id: '3', title: '3 lines' },
+            ]}
+            selected={String(draft.feedLinesTop ?? 0)}
+            onSelect={v => patch({ feedLinesTop: parseInt(v, 10) || 0 })}
+          />
+
+          <DropdownChoice
+            label="White space below (Bottom margin before cut)"
+            options={[
+              { id: '1', title: '1 line (Compact cut)' },
+              { id: '2', title: '2 lines (Standard)' },
+              { id: '3', title: '3 lines' },
+              { id: '4', title: '4 lines' },
+            ]}
+            selected={String(draft.feedLinesBottom ?? 2)}
+            onSelect={v => patch({ feedLinesBottom: parseInt(v, 10) || 2 })}
+          />
 
           <Field
             label="Star identifier (MAC or IP)"
@@ -365,13 +391,22 @@ export function SetupScreen({ navigation }: Props) {
           </Text>
         </TouchableOpacity>
       </View>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => Linking.openURL(ELINTOM_URL)}>
+        <Text style={styles.poweredBy}>
+          Powered by <Text style={styles.brandLink}>ElintOm</Text>
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: layout.pad, backgroundColor: colors.card, flexGrow: 1 },
+  container: { padding: layout.pad, backgroundColor: colors.card, flexGrow: 1, paddingBottom: 24 },
   heading: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 8 },
+  poweredBy: { textAlign: 'center', color: colors.muted, fontSize: 13, marginTop: 24, fontWeight: '500' },
+  brandLink: { fontWeight: '700', textDecorationLine: 'underline', color: colors.primary },
   steps: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   stepDot: { fontSize: 12, color: colors.muted, backgroundColor: colors.border, padding: 6, borderRadius: 8 },
   stepActive: { color: colors.primary, fontWeight: '700' },

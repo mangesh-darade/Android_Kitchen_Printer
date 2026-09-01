@@ -235,6 +235,8 @@ export function buildConfigFromDraft(draft: SetupDraft): AppConfig {
       usbProductId: draft.usbProductId,
       autoReconnect: draft.autoReconnect,
       retryCount: draft.retryCount,
+      feedLinesTop: draft.feedLinesTop ?? 0,
+      feedLinesBottom: draft.feedLinesBottom ?? 2,
       profile: profileForWidth(draft.width),
     },
     security: {
@@ -265,6 +267,8 @@ export type SetupDraft = {
   usbProductId: number;
   autoReconnect: boolean;
   retryCount: number;
+  feedLinesTop: number;
+  feedLinesBottom: number;
 };
 
 export function emptyDraft(): SetupDraft {
@@ -289,6 +293,8 @@ export function emptyDraft(): SetupDraft {
     usbProductId: 0,
     autoReconnect: true,
     retryCount: 3,
+    feedLinesTop: 0,
+    feedLinesBottom: 2,
   };
 }
 
@@ -314,6 +320,8 @@ export function draftFromConfig(config: AppConfig): SetupDraft {
     usbProductId: config.printer.usbProductId,
     autoReconnect: config.printer.autoReconnect,
     retryCount: config.printer.retryCount,
+    feedLinesTop: config.printer.feedLinesTop ?? 0,
+    feedLinesBottom: config.printer.feedLinesBottom ?? 2,
   };
 }
 

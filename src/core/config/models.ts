@@ -53,6 +53,8 @@ export interface PrinterConfig {
   cutMode: PrinterCutMode;
   printEngine: PrintEngine;
   starIdentifier: string;
+  feedLinesTop?: number;
+  feedLinesBottom?: number;
   profile: PrinterProfile;
 }
 
@@ -191,6 +193,8 @@ export function emptyConfig(configVersion = 1): AppConfig {
       cutMode: "partial",
       printEngine: "ESC_POS",
       starIdentifier: "",
+      feedLinesTop: 0,
+      feedLinesBottom: 2,
       profile: profileForWidth("3inch")
     },
     printers: [],

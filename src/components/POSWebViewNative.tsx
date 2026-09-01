@@ -15,6 +15,7 @@ type NativeProps = {
   onLoadProgress?: (event: ProgressEvent) => void;
   onLoadEnd?: (event: MessageEvent) => void;
   onError?: (event: MessageEvent) => void;
+  onTitleReceived?: (event: MessageEvent) => void;
 };
 
 const NativePOSWebView =
@@ -24,9 +25,10 @@ type Props = {
   url: string;
   onError?: (message: string) => void;
   onLoadProgress?: (progress: number) => void;
+  onTitleReceived?: (title: string) => void;
 };
 
-export function POSWebViewNative({url, onError, onLoadProgress}: Props) {
+export function POSWebViewNative({url, onError, onLoadProgress, onTitleReceived}: Props) {
   return (
     <NativePOSWebView
       style={styles.webview}
@@ -34,6 +36,7 @@ export function POSWebViewNative({url, onError, onLoadProgress}: Props) {
       onLoadProgress={e => onLoadProgress?.(e.nativeEvent.progress)}
       onLoadEnd={() => {}}
       onError={e => onError?.(e.nativeEvent.message || 'Load failed')}
+      onTitleReceived={e => onTitleReceived?.(e.nativeEvent.message)}
     />
   );
 }

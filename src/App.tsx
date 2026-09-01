@@ -9,6 +9,9 @@ import {SettingsScreen} from './screens/SettingsScreen';
 import {PrinterTestScreen} from './screens/PrinterTestScreen';
 import {loadConfig, startStarPrintListener} from './native/posConnect';
 
+import {View, Text, ActivityIndicator, TouchableOpacity, Linking} from 'react-native';
+import {APP_NAME, ELINTOM_URL} from './core/app-identity';
+
 export type RootStackParamList = {
   Welcome: undefined;
   Setup: undefined;
@@ -30,7 +33,20 @@ function AppNavigator() {
   }, []);
 
   if (!initialRoute) {
-    return null;
+    return (
+      <View style={{flex: 1, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center'}}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={{color: '#FFFFFF', fontSize: 28, fontWeight: '700', marginTop: 16}}>{APP_NAME}</Text>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={{position: 'absolute', bottom: 32}}
+          onPress={() => Linking.openURL(ELINTOM_URL)}>
+          <Text style={{color: '#94A3B8', fontSize: 13}}>
+            Powered by <Text style={{fontWeight: '700', textDecorationLine: 'underline', color: '#60A5FA'}}>ElintOm</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
