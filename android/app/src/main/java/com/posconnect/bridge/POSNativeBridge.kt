@@ -355,6 +355,14 @@ class POSNativeBridge(
         return res.toJson().toString()
     }
 
+    @JavascriptInterface
+    fun beep(): String {
+        if (!validateOrigin()) return unauthorizedResponse()
+        ensurePrinterEnabled()?.let { return it }
+        val res = runBlocking { printerManager.beep() }
+        return res.toJson().toString()
+    }
+
     /** Internal entry — skips origin check (caller already validated). */
     private fun showPrintDialogInternal(textDataJsonStr: String?): String =
         showPrintDialogImpl(textDataJsonStr)

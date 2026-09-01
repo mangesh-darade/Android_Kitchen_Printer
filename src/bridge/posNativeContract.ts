@@ -15,6 +15,7 @@ export const POS_NATIVE_BRIDGE_METHODS = [
   'testPrinter',
   'openCashDrawer',
   'cutPaper',
+  'beep',
   'showPrintDialog',
   'getPrinterSettings',
   'getPrinterWidth',

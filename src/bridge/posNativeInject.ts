@@ -37,6 +37,7 @@ export const POS_NATIVE_WRAPPER_JS = `
     testPrinter: async function() { return parse(raw.testPrinter()); },
     openCashDrawer: async function() { return parse(raw.openCashDrawer()); },
     cutPaper: async function() { return parse(raw.cutPaper()); },
+    beep: async function() { return parse(raw.beep()); },
     showPrintDialog: async function(data) { return parse(raw.showPrintDialog(asString(data))); }
   };
   window.posNativeBridge = window.posNativeBridge || {};
