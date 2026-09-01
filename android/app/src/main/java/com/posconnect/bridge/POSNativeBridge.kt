@@ -514,7 +514,7 @@ class POSNativeBridge(
         val attributes = PrintAttributes.Builder()
             .setMediaSize(mediaSize)
             .setResolution(PrintAttributes.Resolution("thermal_203", "Thermal 203 DPI", 203, 203))
-            .setMinMargins(PrintAttributes.Margins.ZERO)
+            .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
             .build()
 
         printManager.print("KOT Print", adapter, attributes)
