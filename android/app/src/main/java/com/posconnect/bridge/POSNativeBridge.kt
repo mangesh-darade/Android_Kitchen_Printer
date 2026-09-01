@@ -3,6 +3,7 @@ package com.posconnect.bridge
 import android.app.Activity
 import android.content.Context
 import android.os.Build
+import android.print.PrintAttributes
 import android.print.PrintManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -479,13 +480,44 @@ class POSNativeBridge(
     private fun showSystemPrintDialog(activity: Activity) {
         val webView = webViewProvider() ?: return
         val printManager = activity.getSystemService(Context.PRINT_SERVICE) as PrintManager
+
+        // Ensure print CSS formats table to full 100% width on thermal receipt width
+        val injectPrintCss = """
+            (function() {
+                var s = document.getElementById('pos_thermal_print_css');
+                if (!s) {
+                    s = document.createElement('style');
+                    s.id = 'pos_thermal_print_css';
+                    s.innerHTML = '@media print { @page { size: 80mm auto; margin: 0; } html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; } table { width: 100% !important; } }';
+                    document.head.appendChild(s);
+                }
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(injectPrintCss, null)
+
         val adapter = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             webView.createPrintDocumentAdapter("KOT")
         } else {
             @Suppress("DEPRECATION")
             webView.createPrintDocumentAdapter()
         }
-        printManager.print("KOT Print", adapter, null)
+
+        val printer = configRepo.configState.value.printer
+        val is4Inch = printer.width.paperWidthMm >= 100
+        val widthMils = if (is4Inch) 4000 else 3150 // 101.6mm or 80mm in mils (1 mil = 1/1000 in)
+        val mediaSize = PrintAttributes.MediaSize(
+            if (is4Inch) "RECEIPT_4INCH" else "RECEIPT_80MM",
+            if (is4Inch) "Thermal Receipt (100mm)" else "Thermal Receipt (80mm)",
+            widthMils,
+            8000
+        )
+        val attributes = PrintAttributes.Builder()
+            .setMediaSize(mediaSize)
+            .setResolution(PrintAttributes.Resolution("thermal_203", "Thermal 203 DPI", 203, 203))
+            .setMinMargins(PrintAttributes.Margins.ZERO)
+            .build()
+
+        printManager.print("KOT Print", adapter, attributes)
     }
 
     @JavascriptInterface
