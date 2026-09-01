@@ -183,6 +183,9 @@ class PrinterManager private constructor(private val context: Context) {
         adapter.printReceipt(receipt)
     }
 
+    @Volatile
+    private var lastCutTimeMs = 0L
+
     suspend fun printTextDirect(text: String, isBold: Boolean = false): PrinterResult = withContext(Dispatchers.IO) {
         val config = configRepo.configState.value.printer
         if (!config.enabled) {
@@ -210,6 +213,7 @@ class PrinterManager private constructor(private val context: Context) {
                 if (config.autoCut) {
                     try {
                         adapter.cutPaper(partial = config.cutMode != "full")
+                        lastCutTimeMs = System.currentTimeMillis()
                     } catch (_: Exception) {}
                 }
                 // Audible chime on device + hardware beep on printer
@@ -262,9 +266,18 @@ class PrinterManager private constructor(private val context: Context) {
         if (!configRepo.configState.value.printer.enabled) {
             return@withContext printerDisabledResult()
         }
+        val now = System.currentTimeMillis()
+        if (now - lastCutTimeMs < 3000L) {
+            DiagnosticLogger.i(LogCategory.PRINTER, "PrinterManager", "Duplicate cutPaper ignored (cut within ${now - lastCutTimeMs}ms)")
+            return@withContext PrinterResult.success("Cut already performed with print job")
+        }
         val adapter = getOrInitAdapter() ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
         val printer = configRepo.configState.value.printer
-        adapter.cutPaper(partial = printer.cutMode != "full")
+        val res = adapter.cutPaper(partial = printer.cutMode != "full")
+        if (res.success) {
+            lastCutTimeMs = System.currentTimeMillis()
+        }
+        res
     }
 
     @SuppressLint("MissingPermission")

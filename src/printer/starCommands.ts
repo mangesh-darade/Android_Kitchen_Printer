@@ -1,6 +1,7 @@
 import {StarXpandCommand} from 'react-native-star-io10';
 import type {PrinterCutMode, PrinterWidthClass} from '../core/config/models';
 import {printableAreaMm} from './enginePolicy';
+import {formatKotText} from '../bridge/kitchenPrint';
 
 export type StarJobKind = 'text' | 'qr' | 'barcode' | 'cut' | 'drawer' | 'test';
 
@@ -29,7 +30,9 @@ function printerBuilder(options: StarCommandOptions): StarXpandCommand.PrinterBu
     printer.styleBold(true);
   }
   if (options.text) {
-    const body = options.text.endsWith('\n') ? options.text : `${options.text}\n`;
+    const cpl = options.width === '4inch' ? 64 : 48;
+    const formatted = formatKotText(options.text, cpl);
+    const body = formatted.endsWith('\n') ? formatted : `${formatted}\n`;
     printer.actionPrintText(body);
   }
   if (options.qr) {

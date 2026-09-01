@@ -399,9 +399,6 @@ class POSNativeBridge(
                         printerManager.connectActivePrinter()
                     }
                     val res = printerManager.printTextDirect(text, false)
-                    if (res.success && configRepo.configState.value.printer.autoCut) {
-                        printerManager.cutPaper()
-                    }
                     notifyJsPrintResult(res.success)
                 }
             }.start()
@@ -509,7 +506,7 @@ class POSNativeBridge(
             put("usbProductId", printer.usbProductId)
             put("autoReconnect", printer.autoReconnect)
             put("retryCount", printer.retryCount)
-            put("cutIncludedInPrint", StarPrintBridge.cutIncludedInPrintJob(printer))
+            put("cutIncludedInPrint", printer.autoCut || StarPrintBridge.cutIncludedInPrintJob(printer))
             val sdk = VendorSdkRegistry.activeSdkInfo(
                 printer.brand,
                 printer.printEngine,

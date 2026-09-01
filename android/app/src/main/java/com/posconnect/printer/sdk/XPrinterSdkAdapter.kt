@@ -8,6 +8,7 @@ import com.posconnect.core.logging.DiagnosticLogger
 import com.posconnect.core.logging.LogCategory
 import com.posconnect.printer.adapters.PrinterAdapter
 import com.posconnect.printer.escpos.EscPosCommandBuilder
+import com.posconnect.printer.escpos.KotTextFormatter
 import com.posconnect.printer.escpos.ReceiptLayoutEngine
 import com.posconnect.printer.escpos.TextRasterizer
 import com.posconnect.printer.model.PrinterErrorCodes
@@ -71,6 +72,7 @@ class XPrinterSdkAdapter(
     }
 
     override suspend fun printText(text: String, isBold: Boolean, textSizeSp: Float): PrinterResult {
+        val formattedText = KotTextFormatter.format(text, profile.charactersPerLine)
         return if (TextRasterizer.containsComplexUnicode(text)) {
             val widthPx = if (profile.widthMm >= 100) 832 else 576
             val bitmap = TextRasterizer.rasterizeText(text, widthPx = widthPx, textSizeSp = textSizeSp, isBold = isBold)
@@ -81,7 +83,7 @@ class XPrinterSdkAdapter(
             return withContext(Dispatchers.IO) {
                 try {
                     p.initializePrinter()
-                    p.printText(text, 0, if (isBold) 1 else 0, 0)
+                    p.printText(formattedText, 0, if (isBold) 1 else 0, 0)
                     p.feedLine(2)
                     PrinterResult.success("Text sent via XPrinter SDK")
                 } catch (e: Exception) {

@@ -54,6 +54,7 @@ object TextRasterizer {
 
     /**
      * Rasterizes a single line or block of multilingual text (English, Marathi, Hindi) into a monochrome Bitmap
+     * with full-width margin distribution, centered headers, expanded divider lines, and right-aligned quantities.
      */
     fun rasterizeText(
         text: String,
@@ -62,26 +63,136 @@ object TextRasterizer {
         isBold: Boolean = false,
         alignment: Layout.Alignment = Layout.Alignment.ALIGN_NORMAL
     ): Bitmap {
-        val textPaint = TextPaint().apply {
+        val lines = text.split(Regex("\r?\n"))
+        if (lines.size <= 1 && text.length < 60) {
+            // Single short line: render centered or aligned
+            val textPaint = TextPaint().apply {
+                color = Color.BLACK
+                textSize = textSizeSp
+                typeface = if (isBold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                isAntiAlias = true
+            }
+            val height = (textSizeSp * 2.2f).toInt().coerceAtLeast(40)
+            val bitmap = Bitmap.createBitmap(widthPx, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.drawColor(Color.WHITE)
+            drawCenteredText(canvas, text.trim(), textSizeSp + 6f, textPaint, widthPx)
+            return bitmap
+        }
+
+        val paddingHorizontal = 16f
+        val paintTitle = TextPaint().apply {
+            color = Color.BLACK
+            textSize = textSizeSp * 1.15f
+            typeface = Typeface.DEFAULT_BOLD
+            isAntiAlias = true
+        }
+
+        val paintBold = TextPaint().apply {
             color = Color.BLACK
             textSize = textSizeSp
+            typeface = Typeface.DEFAULT_BOLD
+            isAntiAlias = true
+        }
+
+        val paintRegular = TextPaint().apply {
+            color = Color.BLACK
+            textSize = textSizeSp * 0.92f
             typeface = if (isBold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
             isAntiAlias = true
         }
 
-        val staticLayout = StaticLayout.Builder.obtain(text, 0, text.length, textPaint, widthPx)
-            .setAlignment(alignment)
-            .setLineSpacing(4f, 1f)
-            .setIncludePad(true)
-            .build()
+        val paintLine = Paint().apply {
+            color = Color.BLACK
+            strokeWidth = 2f
+            style = Paint.Style.STROKE
+        }
 
-        val height = staticLayout.height.coerceAtLeast(1)
-        val bitmap = Bitmap.createBitmap(widthPx, height, Bitmap.Config.ARGB_8888)
+        val estimatedLines = lines.size * 2 + 10
+        val heightPx = (estimatedLines * (textSizeSp + 10f)).toInt().coerceAtLeast(300)
+
+        val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)
-        staticLayout.draw(canvas)
 
-        return bitmap
+        var y = textSizeSp
+
+        for (line in lines) {
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) {
+                y += textSizeSp * 0.3f
+                continue
+            }
+
+            // 1. Divider line (---- or ====)
+            if (KotTextFormatter.isDivider(trimmed)) {
+                y += 2f
+                canvas.drawLine(paddingHorizontal, y, widthPx - paddingHorizontal, y, paintLine)
+                y += 14f
+                continue
+            }
+
+            // 2. Table Header (e.g. Items Qty)
+            if (KotTextFormatter.isTableHeader(trimmed)) {
+                val parts = trimmed.split(Regex("\\s{2,}"))
+                val left = parts.firstOrNull() ?: trimmed
+                val right = if (parts.size > 1) parts.drop(1).joinToString(" ") else ""
+                canvas.drawText(left, paddingHorizontal, y, paintBold)
+                if (right.isNotEmpty()) {
+                    val rightW = paintBold.measureText(right)
+                    canvas.drawText(right, widthPx - paddingHorizontal - rightW, y, paintBold)
+                }
+                y += paintBold.textSize + 6f
+                continue
+            }
+
+            // 3. Item row with quantity (e.g. "• American Cheese Burger (Small)     1.00")
+            val itemMatch = KotTextFormatter.parseItemRow(trimmed)
+            if (itemMatch != null) {
+                val (item, qty) = itemMatch
+                val qtyW = paintBold.measureText(qty)
+                val rightX = widthPx - paddingHorizontal - qtyW
+                canvas.drawText(qty, rightX, y, paintBold)
+
+                val maxItemWidth = (rightX - paddingHorizontal - 12f).toInt().coerceAtLeast(100)
+                val itemLayout = StaticLayout.Builder.obtain(item, 0, item.length, paintRegular, maxItemWidth)
+                    .setLineSpacing(2f, 1f)
+                    .setIncludePad(false)
+                    .build()
+
+                canvas.save()
+                canvas.translate(paddingHorizontal, y - paintRegular.textSize + 4f)
+                itemLayout.draw(canvas)
+                canvas.restore()
+
+                y += (itemLayout.height.toFloat() + 4f).coerceAtLeast(paintRegular.textSize + 6f)
+                continue
+            }
+
+            // 4. Header / Metadata line -> Center it
+            if (KotTextFormatter.isHeaderOrMeta(trimmed) || line.startsWith("   ")) {
+                y = drawCenteredText(canvas, trimmed, y, paintBold, widthPx)
+                continue
+            }
+
+            // 5. Default line -> check length
+            if (trimmed.length < 35) {
+                y = drawCenteredText(canvas, trimmed, y, paintRegular, widthPx)
+            } else {
+                val layout = StaticLayout.Builder.obtain(trimmed, 0, trimmed.length, paintRegular, (widthPx - paddingHorizontal * 2).toInt())
+                    .setLineSpacing(2f, 1f)
+                    .setIncludePad(false)
+                    .build()
+                canvas.save()
+                canvas.translate(paddingHorizontal, y - paintRegular.textSize + 4f)
+                layout.draw(canvas)
+                canvas.restore()
+                y += layout.height.toFloat() + 4f
+            }
+        }
+
+        val finalHeight = (y + 6f).toInt().coerceAtMost(heightPx).coerceAtLeast(1)
+        return Bitmap.createBitmap(bitmap, 0, 0, widthPx, finalHeight)
     }
 
     /**

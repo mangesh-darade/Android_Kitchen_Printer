@@ -5,6 +5,7 @@ import com.posconnect.core.config.PrinterBrand
 import com.posconnect.core.logging.DiagnosticLogger
 import com.posconnect.core.logging.LogCategory
 import com.posconnect.printer.escpos.EscPosCommandBuilder
+import com.posconnect.printer.escpos.KotTextFormatter
 import com.posconnect.printer.escpos.ReceiptLayoutEngine
 import com.posconnect.printer.escpos.TextRasterizer
 import com.posconnect.printer.model.PrinterProfile
@@ -40,13 +41,14 @@ open class GenericEscPosAdapter(
     }
 
     override suspend fun printText(text: String, isBold: Boolean, textSizeSp: Float): PrinterResult {
+        val formattedText = KotTextFormatter.format(text, profile.charactersPerLine)
         return if (TextRasterizer.containsComplexUnicode(text)) {
             val widthPx = if (profile.widthMm >= 100) 832 else 576
             val bitmap = TextRasterizer.rasterizeText(text, widthPx = widthPx, textSizeSp = textSizeSp, isBold = isBold)
-            val bytes = EscPosCommandBuilder().initialize().printBitmap(bitmap).lineFeed(2).build()
+            val bytes = EscPosCommandBuilder().initialize().setAlignment(EscPosCommandBuilder.Alignment.CENTER).printBitmap(bitmap).lineFeed(1).build()
             transport.send(bytes)
         } else {
-            val bytes = EscPosCommandBuilder().initialize().setBold(isBold).textLine(text).lineFeed(1).build()
+            val bytes = EscPosCommandBuilder().initialize().setBold(isBold).textLine(formattedText).lineFeed(1).build()
             transport.send(bytes)
         }
     }

@@ -122,8 +122,8 @@ class EscPosCommandBuilder(private val charset: Charset = Charsets.UTF_8) {
     }
 
     fun cut(partial: Boolean = false): EscPosCommandBuilder = apply {
-        // Feed 3 lines then cut
-        lineFeed(3)
+        // Feed 2 lines then cut
+        lineFeed(2)
         buffer.write(byteArrayOf(0x1D, 0x56, if (partial) 0x01 else 0x00)) // GS V m
     }
 
