@@ -20,6 +20,11 @@ import com.posconnect.printer.model.ReceiptData
 import com.posconnect.printer.queue.PrintQueueManager
 import com.posconnect.printer.registry.PrinterFactory
 import com.posconnect.printer.transports.UsbTransport
+import com.posconnect.printer.escpos.EscPosCommandBuilder
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Handler
+import android.os.Looper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -179,18 +184,70 @@ class PrinterManager private constructor(private val context: Context) {
     }
 
     suspend fun printTextDirect(text: String, isBold: Boolean = false): PrinterResult = withContext(Dispatchers.IO) {
-        if (!configRepo.configState.value.printer.enabled) {
+        val config = configRepo.configState.value.printer
+        if (!config.enabled) {
             return@withContext printerDisabledResult()
         }
         val adapter = getOrInitAdapter() ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
-        if (!adapter.isConnected()) {
-            adapter.connect()
+
+        val maxAttempts = (config.retryCount + 1).coerceAtLeast(2)
+        var lastResult = PrinterResult.error(PrinterErrorCodes.PRINTER_OFFLINE, "Print failed")
+
+        for (attempt in 1..maxAttempts) {
+            if (!adapter.isConnected()) {
+                val connRes = adapter.connect()
+                if (!connRes.success) {
+                    lastResult = connRes
+                    if (attempt < maxAttempts) {
+                        delay(600L * attempt)
+                        continue
+                    }
+                }
+            }
+
+            lastResult = adapter.printText(text, isBold)
+            if (lastResult.success) {
+                if (config.autoCut) {
+                    try {
+                        adapter.cutPaper(partial = config.cutMode != "full")
+                    } catch (_: Exception) {}
+                }
+                // Audible chime on device + hardware beep on printer
+                playNotificationAlert()
+                try {
+                    adapter.print(EscPosCommandBuilder().beep(1, 2).build())
+                } catch (_: Exception) {}
+
+                return@withContext lastResult
+            }
+
+            if (attempt < maxAttempts) {
+                try { adapter.disconnect() } catch (_: Exception) {}
+                delay(600L * attempt)
+            }
         }
-        val result = adapter.printText(text, isBold)
-        if (result.success && configRepo.configState.value.printer.autoCut) {
-            adapter.cutPaper(partial = configRepo.configState.value.printer.cutMode != "full")
+        lastResult
+    }
+
+    fun playNotificationAlert() {
+        try {
+            val toneG = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+            toneG.startTone(ToneGenerator.TONE_PROP_BEEP, 350)
+            Handler(Looper.getMainLooper()).postDelayed({
+                try {
+                    toneG.release()
+                } catch (_: Exception) {}
+            }, 450)
+        } catch (_: Exception) {}
+    }
+
+    suspend fun beep(count: Int = 1, duration: Int = 2): PrinterResult = withContext(Dispatchers.IO) {
+        if (!configRepo.configState.value.printer.enabled) {
+            return@withContext printerDisabledResult()
         }
-        result
+        playNotificationAlert()
+        val adapter = getOrInitAdapter() ?: return@withContext PrinterResult.error(PrinterErrorCodes.PRINTER_NOT_FOUND, "No printer configured")
+        adapter.print(EscPosCommandBuilder().beep(count, duration).build())
     }
 
     suspend fun openCashDrawer(): PrinterResult = withContext(Dispatchers.IO) {
