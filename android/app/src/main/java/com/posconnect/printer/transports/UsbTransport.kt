@@ -55,8 +55,22 @@ class UsbTransport(
                 val iface = device.getInterface(i)
                 if (iface.interfaceClass == UsbConstants.USB_CLASS_PRINTER) return true
             }
+            // Check for Bulk-OUT endpoint (standard for USB ESC/POS receipt printers)
+            for (i in 0 until device.interfaceCount) {
+                val iface = device.getInterface(i)
+                val cls = iface.interfaceClass
+                // Exclude Mass Storage (8), Audio (1), Video (14), HID (3)
+                if (cls != 1 && cls != 3 && cls != 8 && cls != 14) {
+                    for (e in 0 until iface.endpointCount) {
+                        val ep = iface.getEndpoint(e)
+                        if (ep.type == UsbConstants.USB_ENDPOINT_XFER_BULK && ep.direction == UsbConstants.USB_DIR_OUT) {
+                            return true
+                        }
+                    }
+                }
+            }
             // Common POS printer vendor IDs
-            val posVendorIds = setOf(0x04b8, 0x0519, 0x0fe6, 0x1fc9, 0x6868, 0x20d1)
+            val posVendorIds = setOf(0x04b8, 0x0519, 0x0fe6, 0x1fc9, 0x6868, 0x20d1, 0x0416, 0x1a86, 0x0483, 0x28e9, 0x1155)
             if (posVendorIds.contains(device.vendorId)) return true
             return false
         }
