@@ -22,6 +22,7 @@ import com.posconnect.printer.registry.PrinterFactory
 import com.posconnect.printer.transports.UsbTransport
 import com.posconnect.printer.escpos.EscPosCommandBuilder
 import android.media.AudioManager
+import android.media.RingtoneManager
 import android.media.ToneGenerator
 import android.os.Handler
 import android.os.Looper
@@ -236,13 +237,17 @@ class PrinterManager private constructor(private val context: Context) {
 
     fun playNotificationAlert() {
         try {
-            val toneG = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-            toneG.startTone(ToneGenerator.TONE_PROP_BEEP, 350)
+            val notificationUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val ringtone = RingtoneManager.getRingtone(context, notificationUri)
+            ringtone?.play()
+
+            val toneG = ToneGenerator(AudioManager.STREAM_ALARM, 100)
+            toneG.startTone(ToneGenerator.TONE_PROP_BEEP2, 450)
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     toneG.release()
                 } catch (_: Exception) {}
-            }, 450)
+            }, 550)
         } catch (_: Exception) {}
     }
 

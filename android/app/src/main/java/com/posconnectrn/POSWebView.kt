@@ -166,6 +166,14 @@ class POSWebView(private val reactContext: ReactContext) : WebView(reactContext)
         loadUrl(currentUrl)
     }
 
+    fun goBackIfPossible(): Boolean {
+        if (canGoBack()) {
+            goBack()
+            return true
+        }
+        return false
+    }
+
     private fun attachBridgeIfNeeded() {
         if (bridgeAttached) return
         val bridge = POSNativeBridge(

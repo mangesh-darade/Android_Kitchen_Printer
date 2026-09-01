@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,12 @@ import {
   Alert,
   Linking,
   StatusBar,
+  BackHandler,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {useFocusEffect} from '@react-navigation/native';
-import {POSWebViewNative} from '../components/POSWebViewNative';
+import {POSWebViewNative, type POSWebViewRef} from '../components/POSWebViewNative';
 import {loadConfig, resetApplication, saveConfig, draftFromConfig, buildConfigFromDraft, startStarPrintListener} from '../native/posConnect';
 import {AppConfig} from '../core/config/models';
 import {APP_NAME, POWERED_BY, ELINTOM_URL} from '../core/app-identity';
@@ -44,6 +45,7 @@ export function PosSessionScreen({navigation}: Props) {
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
   const [webTitle, setWebTitle] = useState('');
+  const webViewRef = useRef<POSWebViewRef>(null);
 
   const refresh = useCallback(async () => {
     const cfg = await loadConfig();
@@ -62,6 +64,25 @@ export function PosSessionScreen({navigation}: Props) {
   useEffect(() => {
     const unsub = startStarPrintListener();
     return unsub;
+  }, []);
+
+  // Hardware Back Button Protection: prevents cashier from accidentally closing app
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert('Exit POS?', 'Are you sure you want to exit ElintOm POS?', [
+        {text: 'Stay', style: 'cancel'},
+        {text: 'Exit', style: 'destructive', onPress: () => BackHandler.exitApp()},
+      ]);
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, []);
+
+  const handleReload = useCallback(() => {
+    setError('');
+    setProgress(20);
+    webViewRef.current?.reload();
   }, []);
 
   async function togglePrintDialog() {
@@ -126,7 +147,7 @@ export function PosSessionScreen({navigation}: Props) {
             </View>
           </View>
 
-          {/* Right: Mobile Pill Buttons */}
+          {/* Right: Mobile Action Buttons */}
           <View style={styles.actionGroup}>
             <TouchableOpacity
               activeOpacity={0.7}
@@ -135,6 +156,13 @@ export function PosSessionScreen({navigation}: Props) {
               <Text style={[styles.pillText, autoPrint ? styles.pillTextAuto : styles.pillTextDialog]}>
                 {autoPrint ? '⚡ Auto' : '📋 Dialog'}
               </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.iconBtn}
+              onPress={handleReload}>
+              <Text style={styles.iconBtnText}>🔄</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -153,16 +181,23 @@ export function PosSessionScreen({navigation}: Props) {
         </View>
       )}
 
+      {/* Enhanced Offline Reconnect Banner */}
       {!!error && (
         <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={refresh} style={styles.retryBtn}>
-            <Text style={styles.retry}>Retry</Text>
+          <View style={styles.errorTextWrap}>
+            <Text style={styles.errorBadge}>⚠️ Offline</Text>
+            <Text style={styles.errorText} numberOfLines={2}>
+              {error}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={handleReload} style={styles.retryBtn} activeOpacity={0.7}>
+            <Text style={styles.retry}>Reconnect 🔄</Text>
           </TouchableOpacity>
         </View>
       )}
 
       <POSWebViewNative
+        ref={webViewRef}
         url={config.division.url}
         onError={setError}
         onLoadProgress={setProgress}
@@ -317,16 +352,34 @@ const styles = StyleSheet.create({
   },
   errorBox: {
     backgroundColor: '#FEF2F2',
-    padding: layout.pad,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#FECACA',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  errorText: {color: colors.danger, flex: 1, fontSize: 13},
-  retryBtn: {paddingLeft: 8},
-  retry: {color: colors.primary, fontWeight: '600', fontSize: 13},
+  errorTextWrap: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  errorBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
+    marginBottom: 2,
+  },
+  errorText: {color: '#7F1D1D', fontSize: 12},
+  retryBtn: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  retry: {color: '#B91C1C', fontWeight: '700', fontSize: 12},
   footerSafeArea: {
     backgroundColor: '#F8FAFC',
     borderTopWidth: 1,

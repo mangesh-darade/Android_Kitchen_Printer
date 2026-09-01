@@ -26,4 +26,21 @@ class POSWebViewManager : SimpleViewManager<POSWebView>() {
             .put("onError", MapBuilder.of("registrationName", "onError"))
             .put("onTitleReceived", MapBuilder.of("registrationName", "onTitleReceived"))
             .build()
+
+    companion object {
+        const val COMMAND_RELOAD = 1
+        const val COMMAND_GO_BACK = 2
+    }
+
+    override fun getCommandsMap(): Map<String, Int> = mapOf(
+        "reload" to COMMAND_RELOAD,
+        "goBack" to COMMAND_GO_BACK
+    )
+
+    override fun receiveCommand(root: POSWebView, commandId: String, args: com.facebook.react.bridge.ReadableArray?) {
+        when (commandId) {
+            "reload", COMMAND_RELOAD.toString() -> root.reload()
+            "goBack", COMMAND_GO_BACK.toString() -> root.goBackIfPossible()
+        }
+    }
 }
